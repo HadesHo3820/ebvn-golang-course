@@ -32,9 +32,13 @@ func NewPassword(svc service.Password) Password {
 // It delegates the password generation to the service layer and returns
 // the generated password as a plain text response.
 //
-// Response:
-//   - 200 OK: Returns the generated password as plain text.
-//   - 500 Internal Server Error: If password generation fails.
+// @Summary Generate a random password
+// @Description Generates a cryptographically secure random password
+// @Tags password
+// @Produce plain
+// @Success 200 {string} string "Generated password"
+// @Failure 500 {string} string "Error message"
+// @Router /gen-pass [get]
 func (h *passwordHandler) GenPass(c *gin.Context) {
 	pass, err := h.svc.GeneratePassword()
 	if err != nil {

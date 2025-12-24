@@ -10,6 +10,8 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Engine defines the interface for the API server.
@@ -61,6 +63,7 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // Endpoints:
 //   - GET /gen-pass: Generates a random password
+//   - GET /swagger/*any: Swagger UI documentation
 func (a *api) RegisterEP() {
 	// Initialize the password service (core business logic)
 	passSvc := service.NewPassword()
@@ -70,4 +73,7 @@ func (a *api) RegisterEP() {
 
 	// Register the password generation endpoint
 	a.app.GET("/gen-pass", passHandler.GenPass)
+
+	// Register Swagger documentation endpoint
+	a.app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }

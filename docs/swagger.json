@@ -1,0 +1,38 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "A simple password generator API built with Go and Gin.",
+        "title": "EBVN Bookmark API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/gen-pass": {
+            "get": {
+                "description": "Generates a cryptographically secure random password",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "password"
+                ],
+                "summary": "Generate a random password",
+                "responses": {
+                    "200": {
+                        "description": "Generated password",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Error message",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
