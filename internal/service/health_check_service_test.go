@@ -1,3 +1,7 @@
+// Package service provides unit tests for the service layer components.
+//
+// This file contains tests for the HealthCheckService, ensuring that the
+// health check functionality works correctly across different configurations.
 package service
 
 import (
@@ -6,6 +10,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestHealthCheckService_Check validates the Check method of the HealthCheckService.
+//
+// This test uses a table-driven approach to verify that the health check service
+// correctly returns the expected health status message, service name, and instance ID.
+//
+// Test coverage includes:
+//   - Verifying that the service returns HealthCheckOK message
+//   - Confirming that the service name is correctly propagated
+//   - Ensuring the instance ID matches the configured value
+//
+// The test runs in parallel for improved performance.
 func TestHealthCheckService_Check(t *testing.T) {
 	t.Parallel()
 

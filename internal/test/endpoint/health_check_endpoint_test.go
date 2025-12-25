@@ -1,3 +1,8 @@
+// Package endpoint provides integration tests for API endpoints.
+//
+// Unlike unit tests that mock dependencies, endpoint tests validate the full HTTP stack
+// including routing, middleware, handlers, and real service implementations. These tests
+// ensure that all layers work together correctly when processing HTTP requests.
 package endpoint
 
 import (
@@ -11,6 +16,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestHealthCheckEndpoint validates the /health-check endpoint through the full HTTP stack.
+//
+// This is an integration test that exercises:
+//   - HTTP routing configuration
+//   - Request handling through the Gin engine
+//   - Handler-to-service delegation with real dependencies
+//   - JSON response serialization
+//
+// Test methodology:
+//   - Uses httptest.NewRequest to simulate incoming HTTP requests
+//   - Uses httptest.NewRecorder to capture the response
+//   - Calls api.Engine.ServeHTTP directly without starting a real server
+//
+// Test coverage includes:
+//   - Verifying the endpoint is correctly registered at /health-check
+//   - Validating HTTP status codes
+//   - Asserting the response message matches service.HealthCheckOK
+//
+// The test runs in parallel for improved performance.
 func TestHealthCheckEndpoint(t *testing.T) {
 	t.Parallel()
 

@@ -1,3 +1,7 @@
+// Package handler provides unit tests for the HTTP handler layer.
+//
+// This file contains tests for the healthCheckHandler, using mocks to isolate
+// the handler from its service dependencies and verify HTTP response behavior.
 package handler
 
 import (
@@ -10,6 +14,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestHealthCheckHandler_Check validates the Check method of the healthCheckHandler.
+//
+// This test uses a table-driven approach with the following testing patterns:
+//   - Mock injection: Uses mockery-generated mocks to isolate the handler from the service layer
+//   - HTTP simulation: Uses httptest.NewRecorder and gin.CreateTestContext for request/response testing
+//   - Parallel execution: Runs test cases concurrently for improved performance
+//
+// Test structure for each case:
+//   - setupRequest: Configures the incoming HTTP request (method, path, headers, body)
+//   - setupMockSvc: Creates and configures the mock service with expected behavior
+//   - expectedStatus: The expected HTTP status code
+//   - expectedBody: The expected JSON response body
+//
+// Test coverage includes:
+//   - Verifying correct HTTP status code is returned
+//   - Validating JSON response body structure and content
+//   - Ensuring proper delegation to the health check service
 func TestHealthCheckHandler_Check(t *testing.T) {
 	t.Parallel()
 
