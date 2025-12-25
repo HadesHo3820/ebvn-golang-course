@@ -1,4 +1,17 @@
 basePath: /
+definitions:
+  internal_handler.healthCheckResponse:
+    properties:
+      instance_id:
+        example: instance-123
+        type: string
+      message:
+        example: OK
+        type: string
+      service_name:
+        example: bookmark_service
+        type: string
+    type: object
 info:
   contact: {}
   description: A simple password generator API built with Go and Gin.
@@ -22,4 +35,21 @@ paths:
       summary: Generate a random password
       tags:
       - password
+  /health-check:
+    get:
+      description: Health check
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.healthCheckResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Health check
+      tags:
+      - health_check
 swagger: "2.0"

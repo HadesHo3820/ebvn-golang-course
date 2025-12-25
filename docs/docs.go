@@ -40,6 +40,51 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/health-check": {
+            "get": {
+                "description": "Health check",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health_check"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.healthCheckResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "internal_handler.healthCheckResponse": {
+            "type": "object",
+            "properties": {
+                "instance_id": {
+                    "type": "string",
+                    "example": "instance-123"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "OK"
+                },
+                "service_name": {
+                    "type": "string",
+                    "example": "bookmark_service"
+                }
+            }
         }
     }
 }`

@@ -63,16 +63,25 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // Endpoints:
 //   - GET /gen-pass: Generates a random password
+//   - GET /health: Health check endpoint
 //   - GET /swagger/*any: Swagger UI documentation
 func (a *api) RegisterEP() {
 	// Initialize the password service (core business logic)
 	passSvc := service.NewPassword()
 
+	// Initialize the health check service with config values (Dependency Injection)
+	healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID)
+
 	// Create the password handler with injected service dependency
 	passHandler := handler.NewPassword(passSvc)
 
+	// Create the health handler with injected service dependency
+	healthHandler := handler.NewHealthCheck(healthSvc)
+
 	// Register the password generation endpoint
 	a.app.GET("/gen-pass", passHandler.GenPass)
+
+	a.app.GET("/health-check", healthHandler.Check)
 
 	// Register Swagger documentation endpoint
 	a.app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
