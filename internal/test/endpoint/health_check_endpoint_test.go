@@ -22,43 +22,45 @@ import (
 //   - HTTP routing configuration
 //   - Request handling through the Gin engine
 //   - Handler-to-service delegation with real dependencies
+//   - Redis connectivity verification
 //   - JSON response serialization
 //
-// Test methodology:
-//   - Uses httptest.NewRequest to simulate incoming HTTP requests
-//   - Uses httptest.NewRecorder to capture the response
-//   - Calls api.Engine.ServeHTTP directly without starting a real server
+// Prerequisites:
+//   - Redis must be running and accessible for the healthy test case
 //
 // Test coverage includes:
 //   - Verifying the endpoint is correctly registered at /health-check
-//   - Validating HTTP status codes
+//   - Validating HTTP status codes (200 when Redis is available)
 //   - Asserting the response message matches service.HealthCheckOK
-//
-// The test runs in parallel for improved performance.
+//   - Validating service_name and instance_id are present in response
 func TestHealthCheckEndpoint(t *testing.T) {
 	t.Parallel()
 
 	cfg, err := api.NewConfig()
 	if err != nil {
-		panic(err)
+		t.Fatalf("failed to load config: %v", err)
 	}
 
 	testCases := []struct {
-		name            string
-		setupTestHTTP   func(api api.Engine) *httptest.ResponseRecorder
-		expectedStatus  int
-		expectedMessage string
+		name           string
+		setupTestHTTP  func(api api.Engine) *httptest.ResponseRecorder
+		expectedStatus int
+		validateBody   func(t *testing.T, body map[string]interface{})
 	}{
 		{
-			name: "normal case",
+			name: "healthy - Redis available",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
 				req := httptest.NewRequest(http.MethodGet, "/health-check", nil)
 				rec := httptest.NewRecorder()
 				api.ServeHTTP(rec, req)
 				return rec
 			},
-			expectedStatus:  http.StatusOK,
-			expectedMessage: service.HealthCheckOK,
+			expectedStatus: http.StatusOK,
+			validateBody: func(t *testing.T, body map[string]interface{}) {
+				assert.Equal(t, service.HealthCheckOK, body["message"])
+				assert.NotEmpty(t, body["service_name"])
+				assert.NotEmpty(t, body["instance_id"])
+			},
 		},
 	}
 
@@ -70,10 +72,13 @@ func TestHealthCheckEndpoint(t *testing.T) {
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
 
-			var resp map[string]any
-			json.Unmarshal(rec.Body.Bytes(), &resp)
+			var resp map[string]interface{}
+			err := json.Unmarshal(rec.Body.Bytes(), &resp)
+			assert.NoError(t, err)
 
-			assert.Equal(t, tc.expectedMessage, resp["message"])
+			if tc.validateBody != nil {
+				tc.validateBody(t, resp)
+			}
 		})
 	}
 }
