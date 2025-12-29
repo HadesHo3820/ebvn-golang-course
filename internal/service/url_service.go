@@ -5,6 +5,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/repository"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
@@ -14,15 +15,18 @@ import (
 // A 7-character alphanumeric code provides ~3.5 trillion unique combinations.
 const (
 	urlCodeLength = 7
+	maxRetries    = 5 // Maximum attempts to generate a unique code
 )
 
 // ShortenUrl defines the interface for URL shortening operations.
 // Implementations of this interface handle the generation of short codes
 // and persistence of URL mappings.
+//
+//go:generate mockery --name ShortenUrl --output ./mocks --filename shorten_url.go
 type ShortenUrl interface {
 	// ShortenUrl generates a unique short code for the given URL
 	// and stores the mapping in the repository.
-	ShortenUrl(ctx context.Context, url string) (string, error)
+	ShortenUrl(ctx context.Context, url string, exp int) (string, error)
 }
 
 // shortenUrl is the concrete implementation of the ShortenUrl interface.
@@ -37,25 +41,39 @@ func NewShortenUrl(repo repository.UrlStorage) ShortenUrl {
 	return &shortenUrl{repo: repo}
 }
 
-// ShortenUrl generates a random alphanumeric code for the given URL,
+// ShortenUrl generates a unique alphanumeric code for the given URL,
 // stores the code-to-URL mapping in the repository, and returns the code.
+//
+// The method attempts to generate a unique code up to maxRetries times.
+// For each attempt, it uses an atomic SETNX operation to store the URL
+// only if the code doesn't already exist. If a collision is detected
+// (code already exists), it retries with a new code.
 //
 // The generated code is urlCodeLength characters long and uses a
 // cryptographically secure random number generator.
 //
 // Returns:
 //   - The generated short code on success.
-//   - An error if code generation or storage fails.
-func (s *shortenUrl) ShortenUrl(ctx context.Context, url string) (string, error) {
-	// generate random code
-	urlCode, err := stringutils.GenerateCode(urlCodeLength)
-	if err != nil {
-		return "", err
+//   - An error if code generation fails, storage fails, or max retries exceeded.
+func (s *shortenUrl) ShortenUrl(ctx context.Context, url string, exp int) (string, error) {
+	for range maxRetries {
+		// generate random code
+		urlCode, err := stringutils.GenerateCode(urlCodeLength)
+		if err != nil {
+			return "", err
+		}
+
+		// atomically store url if code doesn't exist (SETNX)
+		stored, err := s.repo.StoreUrlIfNotExists(ctx, urlCode, url, exp)
+		if err != nil {
+			return "", err
+		}
+		if !stored {
+			continue // collision detected, retry with new code
+		}
+
+		return urlCode, nil
 	}
-	// store url in repository
-	if err := s.repo.StoreUrl(ctx, urlCode, url); err != nil {
-		return "", err
-	}
-	// return code
-	return urlCode, nil
+
+	return "", fmt.Errorf("failed to generate unique code after %d attempts", maxRetries)
 }
