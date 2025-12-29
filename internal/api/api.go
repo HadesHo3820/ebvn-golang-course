@@ -5,10 +5,13 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/repository"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
+	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -63,7 +66,8 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // Endpoints:
 //   - GET /gen-pass: Generates a random password
-//   - GET /health: Health check endpoint
+//   - GET /health-check: Health check endpoint
+//   - POST /links/shorten: Shorten a URL
 //   - GET /swagger/*any: Swagger UI documentation
 func (a *api) RegisterEP() {
 	// Initialize the password service (core business logic)
@@ -72,16 +76,33 @@ func (a *api) RegisterEP() {
 	// Initialize the health check service with config values (Dependency Injection)
 	healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID)
 
+	// Initialize Redis client for URL storage
+	redisClient, err := redisPkg.NewClient("")
+	if err != nil {
+		log.Fatalf("failed to connect to Redis: %v", err)
+	}
+
+	// Initialize URL storage repository and service
+	urlRepo := repository.NewUrlStorage(redisClient)
+	urlSvc := service.NewShortenUrl(urlRepo)
+
 	// Create the password handler with injected service dependency
 	passHandler := handler.NewPassword(passSvc)
 
 	// Create the health handler with injected service dependency
 	healthHandler := handler.NewHealthCheck(healthSvc)
 
+	// Create the URL shorten handler with injected service dependency
+	urlShortenHandler := handler.NewUrlShorten(urlSvc)
+
 	// Register the password generation endpoint
 	a.app.GET("/gen-pass", passHandler.GenPass)
 
+	// Register the health check endpoint
 	a.app.GET("/health-check", healthHandler.Check)
+
+	// Register the URL shorten endpoint
+	a.app.POST("/links/shorten", urlShortenHandler.ShortenUrl)
 
 	// Register Swagger documentation endpoint
 	a.app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

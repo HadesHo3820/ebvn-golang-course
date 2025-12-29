@@ -19,7 +19,7 @@ func main() {
 
 	urlService := service.NewShortenUrl(urlRepo)
 
-	key, _ := urlService.ShortenUrl(ctx, "https://google.com")
+	key, _ := urlService.ShortenUrl(ctx, "https://google.com", 0)
 
 	println(key)
 }
