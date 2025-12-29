@@ -58,10 +58,13 @@ const docTemplate = `{
                             "$ref": "#/definitions/internal_handler.healthCheckResponse"
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
+                    "503": {
+                        "description": "Service Unavailable - dependency unhealthy",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }

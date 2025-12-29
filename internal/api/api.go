@@ -73,14 +73,17 @@ func (a *api) RegisterEP() {
 	// Initialize the password service (core business logic)
 	passSvc := service.NewPassword()
 
-	// Initialize the health check service with config values (Dependency Injection)
-	healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID)
-
-	// Initialize Redis client for URL storage
+	// Initialize Redis client for URL storage and health checking
 	redisClient, err := redisPkg.NewClient("")
 	if err != nil {
 		log.Fatalf("failed to connect to Redis: %v", err)
 	}
+
+	// Initialize Redis health checker for dependency verification
+	redisHealthChecker := repository.NewRedisHealthChecker(redisClient)
+
+	// Initialize the health check service with Redis health checker (Dependency Injection)
+	healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID, redisHealthChecker)
 
 	// Initialize URL storage repository and service
 	urlRepo := repository.NewUrlStorage(redisClient)

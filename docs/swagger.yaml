@@ -75,10 +75,12 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/internal_handler.healthCheckResponse'
-        "500":
-          description: Internal Server Error
+        "503":
+          description: Service Unavailable - dependency unhealthy
           schema:
-            type: string
+            additionalProperties:
+              type: string
+            type: object
       summary: Health check
       tags:
       - health_check
