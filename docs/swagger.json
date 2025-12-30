@@ -8,7 +8,7 @@
     },
     "basePath": "/",
     "paths": {
-        "/gen-pass": {
+        "/v1/gen-pass": {
             "get": {
                 "description": "Generates a cryptographically secure random password",
                 "produces": [
@@ -34,7 +34,7 @@
                 }
             }
         },
-        "/health-check": {
+        "/v1/health-check": {
             "get": {
                 "description": "Health check",
                 "produces": [
@@ -51,10 +51,65 @@
                             "$ref": "#/definitions/internal_handler.healthCheckResponse"
                         }
                     },
+                    "503": {
+                        "description": "Service Unavailable - dependency unhealthy",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/links/shorten": {
+            "post": {
+                "description": "Generate a short code for the provided URL",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "URL"
+                ],
+                "summary": "Shorten URL",
+                "parameters": [
+                    {
+                        "description": "URL shorten request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.urlShortenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.urlShortenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - invalid URL or validation error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -76,6 +131,42 @@
                 "service_name": {
                     "type": "string",
                     "example": "bookmark_service"
+                }
+            }
+        },
+        "internal_handler.urlShortenRequest": {
+            "type": "object",
+            "required": [
+                "exp",
+                "url"
+            ],
+            "properties": {
+                "exp": {
+                    "description": "Exp is the optional expiration time in seconds for the shortened URL.\nbinding:\"gte=0\" ensures the expiration time is greater than or equal to 0",
+                    "type": "integer",
+                    "maximum": 604800,
+                    "minimum": 0,
+                    "example": 86400
+                },
+                "url": {
+                    "description": "Url is the original URL to be shortened.\nbinding:\"required\" makes sure this field is present\nbinding:\"url\" validates that the string is a valid URL format",
+                    "type": "string",
+                    "example": "https://google.com"
+                }
+            }
+        },
+        "internal_handler.urlShortenResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "Code is the generated short code that maps to the original URL.",
+                    "type": "string",
+                    "example": "string"
+                },
+                "message": {
+                    "description": "Message indicates the status of the operation.",
+                    "type": "string",
+                    "example": "Shorten URL generated successfully!"
                 }
             }
         }

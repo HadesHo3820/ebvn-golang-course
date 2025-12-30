@@ -1,14 +1,8 @@
 package service
 
-import (
-	"bytes"
-	"crypto/rand"
-	"math/big"
-)
+import "github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
 
 const (
-	// charset contains the alphanumeric characters used for password generation.
-	charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	// passLength defines the default length of the generated password.
 	passLength = 10
 )
@@ -17,6 +11,7 @@ const (
 type passwordService struct{}
 
 // Password defines the interface for password-related operations.
+//
 //go:generate mockery --name Password --filename pass_service.go
 type Password interface {
 	// GeneratePassword creates a new random password.
@@ -32,17 +27,5 @@ func NewPassword() Password {
 // It uses characters from the predefined charset and has a fixed length of 10.
 // Returns the generated password string or an error if the random number generator fails.
 func (s *passwordService) GeneratePassword() (string, error) {
-	var strBuilder bytes.Buffer
-
-	// generate random password of length passLength
-	for range passLength {
-		// Generate a random index using crypto/rand for cryptographic security.
-		randomIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
-		if err != nil {
-			return "", err
-		}
-		// Select the character at the random index and append it to the result.
-		strBuilder.WriteByte(charset[randomIndex.Int64()])
-	}
-	return strBuilder.String(), nil
+	return stringutils.GenerateCode(passLength)
 }

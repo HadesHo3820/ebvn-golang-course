@@ -6,13 +6,12 @@
 package endpoint
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
-	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
+	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,43 +21,41 @@ import (
 //   - HTTP routing configuration
 //   - Request handling through the Gin engine
 //   - Handler-to-service delegation with real dependencies
+//   - Redis connectivity verification
 //   - JSON response serialization
 //
-// Test methodology:
-//   - Uses httptest.NewRequest to simulate incoming HTTP requests
-//   - Uses httptest.NewRecorder to capture the response
-//   - Calls api.Engine.ServeHTTP directly without starting a real server
+// Prerequisites:
+//   - Redis must be running and accessible for the healthy test case
 //
 // Test coverage includes:
 //   - Verifying the endpoint is correctly registered at /health-check
-//   - Validating HTTP status codes
+//   - Validating HTTP status codes (200 when Redis is available)
 //   - Asserting the response message matches service.HealthCheckOK
-//
-// The test runs in parallel for improved performance.
+//   - Validating service_name and instance_id are present in response
 func TestHealthCheckEndpoint(t *testing.T) {
 	t.Parallel()
 
-	cfg, err := api.NewConfig()
-	if err != nil {
-		panic(err)
+	cfg := &api.Config{
+		ServiceName: "test-service",
+		InstanceID:  "1234",
 	}
 
 	testCases := []struct {
-		name            string
-		setupTestHTTP   func(api api.Engine) *httptest.ResponseRecorder
-		expectedStatus  int
-		expectedMessage string
+		name           string
+		setupTestHTTP  func(api api.Engine) *httptest.ResponseRecorder
+		expectedStatus int
+		expectedBody   string
 	}{
 		{
-			name: "normal case",
+			name: "healthy - Redis available",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/health-check", nil)
+				req := httptest.NewRequest(http.MethodGet, "/v1/health-check", nil)
 				rec := httptest.NewRecorder()
 				api.ServeHTTP(rec, req)
 				return rec
 			},
-			expectedStatus:  http.StatusOK,
-			expectedMessage: service.HealthCheckOK,
+			expectedStatus: http.StatusOK,
+			expectedBody:   `{"message":"OK","service_name":"test-service","instance_id":"1234"}`,
 		},
 	}
 
@@ -66,14 +63,10 @@ func TestHealthCheckEndpoint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			rec := tc.setupTestHTTP(api.New(cfg))
+			rec := tc.setupTestHTTP(api.New(cfg, redisPkg.InitMockRedis(t), nil))
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
-
-			var resp map[string]any
-			json.Unmarshal(rec.Body.Bytes(), &resp)
-
-			assert.Equal(t, tc.expectedMessage, resp["message"])
+			assert.JSONEq(t, tc.expectedBody, rec.Body.String())
 		})
 	}
 }

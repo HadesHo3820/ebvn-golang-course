@@ -8,8 +8,11 @@ import (
 	"net/http"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/repository"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -26,17 +29,21 @@ type Engine interface {
 // api is the concrete implementation of the Engine interface.
 // It wraps a Gin engine and manages the application's HTTP routing.
 type api struct {
-	app *gin.Engine
-	cfg *Config
+	app         *gin.Engine
+	cfg         *Config
+	redisClient *redis.Client
+	keyGen      stringutils.KeyGenerator
 }
 
 // New creates and initializes a new API server.
 // It sets up the Gin engine and registers all endpoints.
 // Returns an Engine interface to hide the implementation details.
-func New(cfg *Config) Engine {
+func New(cfg *Config, redisClient *redis.Client, keyGen stringutils.KeyGenerator) Engine {
 	a := &api{
-		app: gin.New(),
-		cfg: cfg,
+		app:         gin.New(),
+		cfg:         cfg,
+		redisClient: redisClient,
+		keyGen:      keyGen,
 	}
 	a.RegisterEP()
 	return a
@@ -63,14 +70,22 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // Endpoints:
 //   - GET /gen-pass: Generates a random password
-//   - GET /health: Health check endpoint
+//   - GET /health-check: Health check endpoint
+//   - POST /links/shorten: Shorten a URL
 //   - GET /swagger/*any: Swagger UI documentation
 func (a *api) RegisterEP() {
 	// Initialize the password service (core business logic)
 	passSvc := service.NewPassword()
 
-	// Initialize the health check service with config values (Dependency Injection)
-	healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID)
+	// Initialize Redis health checker for dependency verification
+	// Use the injected Redis client from the constructor
+	redisHealthChecker := repository.NewRedisHealthChecker(a.redisClient)
+
+	healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID, redisHealthChecker)
+
+	// Initialize URL storage repository and service
+	urlRepo := repository.NewUrlStorage(a.redisClient)
+	urlSvc := service.NewShortenUrl(urlRepo, a.keyGen)
 
 	// Create the password handler with injected service dependency
 	passHandler := handler.NewPassword(passSvc)
@@ -78,10 +93,24 @@ func (a *api) RegisterEP() {
 	// Create the health handler with injected service dependency
 	healthHandler := handler.NewHealthCheck(healthSvc)
 
-	// Register the password generation endpoint
-	a.app.GET("/gen-pass", passHandler.GenPass)
+	// Create the URL shorten handler with injected service dependency
+	urlShortenHandler := handler.NewUrlShorten(urlSvc)
 
-	a.app.GET("/health-check", healthHandler.Check)
+	// v1Routes creates a route group with "/v1" prefix for API versioning.
+	// All routes registered under this group will be prefixed with "/v1",
+	// allowing for future API versions (e.g., "/v2") without breaking existing clients.
+	// The curly braces are purely for visual grouping and have no effect on scope.
+	v1Routes := a.app.Group("/v1")
+	{
+		// GET /v1/gen-pass - Generates a random password
+		v1Routes.GET("/gen-pass", passHandler.GenPass)
+
+		// GET /v1/health-check - Returns service health status including Redis connectivity
+		v1Routes.GET("/health-check", healthHandler.Check)
+
+		// POST /v1/links/shorten - Creates a shortened URL code for the provided URL
+		v1Routes.POST("/links/shorten", urlShortenHandler.ShortenUrl)
+	}
 
 	// Register Swagger documentation endpoint
 	a.app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
