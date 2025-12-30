@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+var testConnectionErr = errors.New("connection refused")
+
 // TestHealthCheckService_Check validates the Check method of the HealthCheckService.
 //
 // This test uses a table-driven approach to verify that the health check service
@@ -58,13 +60,13 @@ func TestHealthCheckService_Check(t *testing.T) {
 			inputInstanceID:  "instance-456",
 			setupMock: func(t *testing.T) repository.HealthChecker {
 				m := mocks.NewHealthChecker(t)
-				m.On("Ping", mock.Anything).Return(errors.New("connection refused")).Once()
+				m.On("Ping", mock.Anything).Return(testConnectionErr).Once()
 				return m
 			},
 			expectedMessage:     HealthCheckUnhealthy,
 			expectedServiceName: "bookmark_service",
 			expectedInstanceID:  "instance-456",
-			expectedErr:         errors.New("connection refused"),
+			expectedErr:         testConnectionErr,
 		},
 		{
 			name:             "healthy - no health checker configured",
@@ -100,8 +102,7 @@ func TestHealthCheckService_Check(t *testing.T) {
 			assert.Equal(t, tc.expectedInstanceID, instanceID)
 
 			if tc.expectedErr != nil {
-				assert.Error(t, err)
-				assert.Equal(t, tc.expectedErr.Error(), err.Error())
+				assert.ErrorIs(t, err, tc.expectedErr)
 			} else {
 				assert.NoError(t, err)
 			}
