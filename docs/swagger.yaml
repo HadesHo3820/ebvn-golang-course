@@ -12,13 +12,45 @@ definitions:
         example: bookmark_service
         type: string
     type: object
+  internal_handler.urlShortenRequest:
+    properties:
+      exp:
+        description: |-
+          Exp is the optional expiration time in seconds for the shortened URL.
+          binding:"gte=0" ensures the expiration time is greater than or equal to 0
+        example: 86400
+        maximum: 604800
+        minimum: 0
+        type: integer
+      url:
+        description: |-
+          Url is the original URL to be shortened.
+          binding:"required" makes sure this field is present
+          binding:"url" validates that the string is a valid URL format
+        example: https://google.com
+        type: string
+    required:
+    - exp
+    - url
+    type: object
+  internal_handler.urlShortenResponse:
+    properties:
+      code:
+        description: Code is the generated short code that maps to the original URL.
+        example: string
+        type: string
+      message:
+        description: Message indicates the status of the operation.
+        example: Shorten URL generated successfully!
+        type: string
+    type: object
 info:
   contact: {}
   description: A simple password generator API built with Go and Gin.
   title: EBVN Bookmark API
   version: "1.0"
 paths:
-  /gen-pass:
+  /v1/gen-pass:
     get:
       description: Generates a cryptographically secure random password
       produces:
@@ -35,7 +67,7 @@ paths:
       summary: Generate a random password
       tags:
       - password
-  /health-check:
+  /v1/health-check:
     get:
       description: Health check
       produces:
@@ -45,11 +77,47 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/internal_handler.healthCheckResponse'
-        "500":
-          description: Internal Server Error
+        "503":
+          description: Service Unavailable - dependency unhealthy
           schema:
-            type: string
+            additionalProperties:
+              type: string
+            type: object
       summary: Health check
       tags:
       - health_check
+  /v1/links/shorten:
+    post:
+      consumes:
+      - application/json
+      description: Generate a short code for the provided URL
+      parameters:
+      - description: URL shorten request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.urlShortenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.urlShortenResponse'
+        "400":
+          description: Bad Request - invalid URL or validation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Shorten URL
+      tags:
+      - URL
 swagger: "2.0"

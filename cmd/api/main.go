@@ -3,6 +3,8 @@ package main
 import (
 	_ "github.com/HadesHo3820/ebvn-golang-course/docs"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
+	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
 )
 
 // @title EBVN Bookmark API
@@ -15,6 +17,13 @@ func main() {
 		panic(err)
 	}
 
-	app := api.New(cfg)
+	redisClient, err := redisPkg.NewClient("")
+	if err != nil {
+		panic(err)
+	}
+
+	keyGen := stringutils.NewKeyGenerator()
+
+	app := api.New(cfg, redisClient, keyGen)
 	app.Start()
 }

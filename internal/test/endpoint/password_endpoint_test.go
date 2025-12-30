@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
+	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +51,7 @@ func TestPasswordEndpoint(t *testing.T) {
 		{
 			name: "success",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/gen-pass", nil)
+				req := httptest.NewRequest(http.MethodGet, "/v1/gen-pass", nil)
 				rec := httptest.NewRecorder()
 				api.ServeHTTP(rec, req)
 				return rec
@@ -60,16 +61,11 @@ func TestPasswordEndpoint(t *testing.T) {
 		},
 	}
 
-	cfg, err := api.NewConfig()
-	if err != nil {
-		panic(err)
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			rec := tc.setupTestHTTP(api.New(cfg))
+			rec := tc.setupTestHTTP(api.New(&api.Config{}, redisPkg.InitMockRedis(t), nil))
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
 			assert.Equal(t, tc.expectedRespLen, len(rec.Body.String()))

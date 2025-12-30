@@ -11,6 +11,22 @@ const (
 	charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
+// KeyGenerator defines the interface for generating random codes.
+//go:generate mockery --name KeyGenerator --filename key_generator.go
+type KeyGenerator interface {
+	GenerateCode(length int) (string, error)
+}
+
+type keyGen struct{}
+
+func NewKeyGenerator() KeyGenerator {
+	return &keyGen{}
+}
+
+func (k *keyGen) GenerateCode(length int) (string, error) {
+	return GenerateCode(length)
+}
+
 func GenerateCode(length int) (string, error) {
 	var strBuilder bytes.Buffer
 
@@ -26,4 +42,3 @@ func GenerateCode(length int) (string, error) {
 	}
 	return strBuilder.String(), nil
 }
-
