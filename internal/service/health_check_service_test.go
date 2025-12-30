@@ -32,7 +32,7 @@ func TestHealthCheckService_Check(t *testing.T) {
 		name                string
 		inputServiceName    string
 		inputInstanceID     string
-		setupMock           func(t *testing.T) (repository.HealthChecker, func())
+		setupMock           func(t *testing.T) repository.HealthChecker
 		expectedMessage     string
 		expectedServiceName string
 		expectedInstanceID  string
@@ -42,10 +42,10 @@ func TestHealthCheckService_Check(t *testing.T) {
 			name:             "healthy - Redis available",
 			inputServiceName: "bookmark_service",
 			inputInstanceID:  "instance-123",
-			setupMock: func(t *testing.T) (repository.HealthChecker, func()) {
+			setupMock: func(t *testing.T) repository.HealthChecker {
 				m := mocks.NewHealthChecker(t)
 				m.On("Ping", mock.Anything).Return(nil).Once()
-				return m, func() { m.AssertExpectations(t) }
+				return m
 			},
 			expectedMessage:     HealthCheckOK,
 			expectedServiceName: "bookmark_service",
@@ -56,10 +56,10 @@ func TestHealthCheckService_Check(t *testing.T) {
 			name:             "unhealthy - Redis unavailable",
 			inputServiceName: "bookmark_service",
 			inputInstanceID:  "instance-456",
-			setupMock: func(t *testing.T) (repository.HealthChecker, func()) {
+			setupMock: func(t *testing.T) repository.HealthChecker {
 				m := mocks.NewHealthChecker(t)
 				m.On("Ping", mock.Anything).Return(errors.New("connection refused")).Once()
-				return m, func() { m.AssertExpectations(t) }
+				return m
 			},
 			expectedMessage:     HealthCheckUnhealthy,
 			expectedServiceName: "bookmark_service",
@@ -70,8 +70,8 @@ func TestHealthCheckService_Check(t *testing.T) {
 			name:             "healthy - no health checker configured",
 			inputServiceName: "bookmark_service",
 			inputInstanceID:  "instance-789",
-			setupMock: func(t *testing.T) (repository.HealthChecker, func()) {
-				return nil, func() {} // No health checker, no assertions
+			setupMock: func(t *testing.T) repository.HealthChecker {
+				return nil
 			},
 			expectedMessage:     HealthCheckOK,
 			expectedServiceName: "bookmark_service",
@@ -86,7 +86,7 @@ func TestHealthCheckService_Check(t *testing.T) {
 			ctx := context.Background()
 
 			// Setup mock
-			healthChecker, assertExpectations := tc.setupMock(t)
+			healthChecker := tc.setupMock(t)
 
 			// Create service with mock
 			testSvc := NewHealthCheck(tc.inputServiceName, tc.inputInstanceID, healthChecker)
@@ -105,9 +105,6 @@ func TestHealthCheckService_Check(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-
-			// Verify mock expectations
-			assertExpectations()
 		})
 	}
 }
