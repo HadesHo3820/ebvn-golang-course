@@ -34,7 +34,7 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 		{
 			name: "successful storage on first attempt",
 			setupMock: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
-				mockRepo := new(mocks.UrlStorage)
+				mockRepo := mocks.NewUrlStorage(t)
 				// First call succeeds (stored = true)
 				// We only use mock.Anything to match any argument that is not defined in the test case
 				// For example, the StoreUrlIfNotExists method has 4 arguments:
@@ -58,7 +58,7 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 		{
 			name: "successful storage after one collision",
 			setupMock: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
-				mockRepo := new(mocks.UrlStorage)
+				mockRepo := mocks.NewUrlStorage(t)
 				// First call: collision (stored = false)
 				mockRepo.On("StoreUrlIfNotExists", ctx, mock.Anything, urlInput, expInput).
 					Return(false, nil).Once()
@@ -82,7 +82,7 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 		{
 			name: "max retries exceeded - all collisions",
 			setupMock: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
-				mockRepo := new(mocks.UrlStorage)
+				mockRepo := mocks.NewUrlStorage(t)
 				// All 5 attempts result in collision
 				mockRepo.On("StoreUrlIfNotExists", ctx, mock.Anything, urlInput, expInput).
 					Return(false, nil).Times(5)
@@ -102,7 +102,7 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 		{
 			name: "repository error",
 			setupMock: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
-				mockRepo := new(mocks.UrlStorage)
+				mockRepo := mocks.NewUrlStorage(t)
 				mockRepo.On("StoreUrlIfNotExists", ctx, mock.Anything, urlInput, expInput).
 					Return(false, errors.New("redis connection failed")).Once()
 				return mockRepo
@@ -122,7 +122,7 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 			name: "KeyGen error",
 			url:  "https://example.com",
 			setupMock: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
-				mockRepo := new(mocks.UrlStorage)
+				mockRepo := mocks.NewUrlStorage(t)
 				return mockRepo
 			},
 			setupMockKeyGen: func() *mockKeyGen.KeyGenerator {
