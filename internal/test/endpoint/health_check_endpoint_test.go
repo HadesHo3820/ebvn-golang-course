@@ -6,13 +6,12 @@
 package endpoint
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
-	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
+	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,31 +35,27 @@ import (
 func TestHealthCheckEndpoint(t *testing.T) {
 	t.Parallel()
 
-	cfg, err := api.NewConfig()
-	if err != nil {
-		t.Fatalf("failed to load config: %v", err)
+	cfg := &api.Config{
+		ServiceName: "test-service",
+		InstanceID:  "1234",
 	}
 
 	testCases := []struct {
 		name           string
 		setupTestHTTP  func(api api.Engine) *httptest.ResponseRecorder
 		expectedStatus int
-		validateBody   func(t *testing.T, body map[string]interface{})
+		expectedBody   string
 	}{
 		{
 			name: "healthy - Redis available",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/health-check", nil)
+				req := httptest.NewRequest(http.MethodGet, "/v1/health-check", nil)
 				rec := httptest.NewRecorder()
 				api.ServeHTTP(rec, req)
 				return rec
 			},
 			expectedStatus: http.StatusOK,
-			validateBody: func(t *testing.T, body map[string]interface{}) {
-				assert.Equal(t, service.HealthCheckOK, body["message"])
-				assert.NotEmpty(t, body["service_name"])
-				assert.NotEmpty(t, body["instance_id"])
-			},
+			expectedBody:   `{"message":"OK","service_name":"test-service","instance_id":"1234"}`,
 		},
 	}
 
@@ -68,17 +63,10 @@ func TestHealthCheckEndpoint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			rec := tc.setupTestHTTP(api.New(cfg))
+			rec := tc.setupTestHTTP(api.New(cfg, redisPkg.InitMockRedis(t), nil))
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
-
-			var resp map[string]interface{}
-			err := json.Unmarshal(rec.Body.Bytes(), &resp)
-			assert.NoError(t, err)
-
-			if tc.validateBody != nil {
-				tc.validateBody(t, resp)
-			}
+			assert.JSONEq(t, tc.expectedBody, rec.Body.String())
 		})
 	}
 }

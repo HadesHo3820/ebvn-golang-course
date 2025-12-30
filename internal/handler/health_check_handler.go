@@ -57,7 +57,7 @@ func NewHealthCheck(svc service.HealthCheck) HealthCheck {
 // @Produce json
 // @Success 200 {object} healthCheckResponse
 // @Failure 503 {object} map[string]string "Service Unavailable - dependency unhealthy"
-// @Router /health-check [get]
+// @Router /v1/health-check [get]
 func (h *healthCheckHandler) Check(c *gin.Context) {
 	message, serviceName, instanceID, err := h.healthCheckSvc.Check(c)
 	if err != nil {
@@ -65,7 +65,7 @@ func (h *healthCheckHandler) Check(c *gin.Context) {
 			"message":      message,
 			"service_name": serviceName,
 			"instance_id":  instanceID,
-			"error":        err.Error(),
+			"error":        "Internal Server Error",
 		})
 		return
 	}

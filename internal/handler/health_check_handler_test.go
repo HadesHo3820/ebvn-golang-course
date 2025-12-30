@@ -5,6 +5,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,6 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 // TestHealthCheckHandler_Check validates the Check method of the healthCheckHandler.
@@ -36,7 +36,7 @@ func TestHealthCheckHandler_Check(t *testing.T) {
 	testCases := []struct {
 		name           string
 		setupRequest   func(ctx *gin.Context)
-		setupMockSvc   func(t *testing.T) *mocks.HealthCheck
+		setupMockSvc   func(t *testing.T, ctx context.Context) *mocks.HealthCheck
 		expectedStatus int
 		expectedBody   string
 	}{
@@ -45,9 +45,9 @@ func TestHealthCheckHandler_Check(t *testing.T) {
 			setupRequest: func(ctx *gin.Context) {
 				ctx.Request = httptest.NewRequest(http.MethodGet, "/health-check", nil)
 			},
-			setupMockSvc: func(t *testing.T) *mocks.HealthCheck {
+			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.HealthCheck {
 				mockSvc := mocks.NewHealthCheck(t)
-				mockSvc.On("Check", mock.Anything).
+				mockSvc.On("Check", ctx).
 					Return("OK", "bookmark_service", "instance-123", nil).Once()
 				return mockSvc
 			},
@@ -59,14 +59,14 @@ func TestHealthCheckHandler_Check(t *testing.T) {
 			setupRequest: func(ctx *gin.Context) {
 				ctx.Request = httptest.NewRequest(http.MethodGet, "/health-check", nil)
 			},
-			setupMockSvc: func(t *testing.T) *mocks.HealthCheck {
+			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.HealthCheck {
 				mockSvc := mocks.NewHealthCheck(t)
-				mockSvc.On("Check", mock.Anything).
+				mockSvc.On("Check", ctx).
 					Return("UNHEALTHY", "bookmark_service", "instance-456", errors.New("connection refused")).Once()
 				return mockSvc
 			},
 			expectedStatus: http.StatusServiceUnavailable,
-			expectedBody:   `{"error":"connection refused","instance_id":"instance-456","message":"UNHEALTHY","service_name":"bookmark_service"}`,
+			expectedBody:   `{"error":"Internal Server Error","instance_id":"instance-456","message":"UNHEALTHY","service_name":"bookmark_service"}`,
 		},
 	}
 
@@ -84,7 +84,7 @@ func TestHealthCheckHandler_Check(t *testing.T) {
 			tc.setupRequest(gctx)
 
 			// Setup the mock service
-			svcMock := tc.setupMockSvc(t)
+			svcMock := tc.setupMockSvc(t, gctx)
 
 			// Create the handler with the mock service
 			handler := NewHealthCheck(svcMock)
@@ -95,9 +95,6 @@ func TestHealthCheckHandler_Check(t *testing.T) {
 			// Check the response and status code
 			assert.Equal(t, tc.expectedStatus, rec.Code)
 			assert.JSONEq(t, tc.expectedBody, rec.Body.String())
-
-			// Verify mock expectations
-			svcMock.AssertExpectations(t)
 		})
 	}
 }

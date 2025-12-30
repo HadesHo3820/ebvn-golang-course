@@ -55,7 +55,7 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">github.com/HadesHo3820/ebvn-golang-course/internal/api/api.go (91.7%)</option>
+				<option value="file0">github.com/HadesHo3820/ebvn-golang-course/internal/api/api.go (85.2%)</option>
 				
 				<option value="file1">github.com/HadesHo3820/ebvn-golang-course/internal/api/config.go (85.7%)</option>
 				
@@ -63,9 +63,25 @@
 				
 				<option value="file3">github.com/HadesHo3820/ebvn-golang-course/internal/handler/pass_handler.go (100.0%)</option>
 				
-				<option value="file4">github.com/HadesHo3820/ebvn-golang-course/internal/service/health_check_service.go (100.0%)</option>
+				<option value="file4">github.com/HadesHo3820/ebvn-golang-course/internal/handler/url_shorten_handler.go (100.0%)</option>
 				
-				<option value="file5">github.com/HadesHo3820/ebvn-golang-course/internal/service/pass_service.go (87.5%)</option>
+				<option value="file5">github.com/HadesHo3820/ebvn-golang-course/internal/repository/healthcheck.go (100.0%)</option>
+				
+				<option value="file6">github.com/HadesHo3820/ebvn-golang-course/internal/repository/urlstorage.go (90.9%)</option>
+				
+				<option value="file7">github.com/HadesHo3820/ebvn-golang-course/internal/service/health_check_service.go (100.0%)</option>
+				
+				<option value="file8">github.com/HadesHo3820/ebvn-golang-course/internal/service/pass_service.go (100.0%)</option>
+				
+				<option value="file9">github.com/HadesHo3820/ebvn-golang-course/internal/service/url_service.go (100.0%)</option>
+				
+				<option value="file10">github.com/HadesHo3820/ebvn-golang-course/pkg/redis/client.go (0.0%)</option>
+				
+				<option value="file11">github.com/HadesHo3820/ebvn-golang-course/pkg/redis/config.go (0.0%)</option>
+				
+				<option value="file12">github.com/HadesHo3820/ebvn-golang-course/pkg/redis/mock.go (100.0%)</option>
+				
+				<option value="file13">github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils/code.go (88.9%)</option>
 				
 				</select>
 			</div>
@@ -98,8 +114,11 @@ import (
         "net/http"
 
         "github.com/HadesHo3820/ebvn-golang-course/internal/handler"
+        "github.com/HadesHo3820/ebvn-golang-course/internal/repository"
         "github.com/HadesHo3820/ebvn-golang-course/internal/service"
+        "github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
         "github.com/gin-gonic/gin"
+        "github.com/redis/go-redis/v9"
         swaggerFiles "github.com/swaggo/files"
         ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -116,21 +135,25 @@ type Engine interface {
 // api is the concrete implementation of the Engine interface.
 // It wraps a Gin engine and manages the application's HTTP routing.
 type api struct {
-        app *gin.Engine
-        cfg *Config
+        app         *gin.Engine
+        cfg         *Config
+        redisClient *redis.Client
+        keyGen      stringutils.KeyGenerator
 }
 
 // New creates and initializes a new API server.
 // It sets up the Gin engine and registers all endpoints.
 // Returns an Engine interface to hide the implementation details.
-func New(cfg *Config) Engine <span class="cov10" title="2">{
+func New(cfg *Config, redisClient *redis.Client, keyGen stringutils.KeyGenerator) Engine <span class="cov10" title="5">{
         a := &amp;api{
-                app: gin.New(),
-                cfg: cfg,
+                app:         gin.New(),
+                cfg:         cfg,
+                redisClient: redisClient,
+                keyGen:      keyGen,
         }
         a.RegisterEP()
         return a
-}</span>
+}</span></span>
 
 // Start begins listening for HTTP requests.
 // By default, Gin listens on port 8080.
@@ -141,7 +164,7 @@ func (a *api) Start() error <span class="cov0" title="0">{
 
 // ServeHTTP serves an HTTP request with the given response writer and request.
 // It uses the underlying Gin engine to handle the request and write the response.
-func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) <span class="cov10" title="2">{
+func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) <span class="cov10" title="5">{
         a.app.ServeHTTP(w, r)
 }</span>
 
@@ -153,14 +176,30 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) <span class="cov
 //
 // Endpoints:
 //   - GET /gen-pass: Generates a random password
-//   - GET /health: Health check endpoint
+//   - GET /health-check: Health check endpoint
+//   - POST /links/shorten: Shorten a URL
 //   - GET /swagger/*any: Swagger UI documentation
-func (a *api) RegisterEP() <span class="cov10" title="2">{
+func (a *api) RegisterEP() <span class="cov10" title="5">{
         // Initialize the password service (core business logic)
         passSvc := service.NewPassword()
 
-        // Initialize the health check service with config values (Dependency Injection)
-        healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID)
+        // Initialize Redis health checker for dependency verification
+        // Use the injected Redis client from the constructor
+        redisHealthChecker := repository.NewRedisHealthChecker(a.redisClient)
+
+        // Initialize the health check service with Redis health checker (Dependency Injection)
+        // Use default values if config is nil (for testing purposes)
+        serviceName := "bookmark_service"
+        instanceID := "default"
+        if a.cfg != nil </span><span class="cov4" title="2">{
+                serviceName = a.cfg.ServiceName
+                instanceID = a.cfg.InstanceID
+        }</span>
+        <span class="cov10" title="5">healthSvc := service.NewHealthCheck(serviceName, instanceID, redisHealthChecker)
+
+        // Initialize URL storage repository and service
+        urlRepo := repository.NewUrlStorage(a.redisClient)
+        urlSvc := service.NewShortenUrl(urlRepo, a.keyGen)
 
         // Create the password handler with injected service dependency
         passHandler := handler.NewPassword(passSvc)
@@ -168,14 +207,28 @@ func (a *api) RegisterEP() <span class="cov10" title="2">{
         // Create the health handler with injected service dependency
         healthHandler := handler.NewHealthCheck(healthSvc)
 
-        // Register the password generation endpoint
-        a.app.GET("/gen-pass", passHandler.GenPass)
+        // Create the URL shorten handler with injected service dependency
+        urlShortenHandler := handler.NewUrlShorten(urlSvc)
 
-        a.app.GET("/health-check", healthHandler.Check)
+        // v1Routes creates a route group with "/v1" prefix for API versioning.
+        // All routes registered under this group will be prefixed with "/v1",
+        // allowing for future API versions (e.g., "/v2") without breaking existing clients.
+        // The curly braces are purely for visual grouping and have no effect on scope.
+        v1Routes := a.app.Group("/v1")
+        </span><span class="cov10" title="5">{
+                // GET /v1/gen-pass - Generates a random password
+                v1Routes.GET("/gen-pass", passHandler.GenPass)
+
+                // GET /v1/health-check - Returns service health status including Redis connectivity
+                v1Routes.GET("/health-check", healthHandler.Check)
+
+                // POST /v1/links/shorten - Creates a shortened URL code for the provided URL
+                v1Routes.POST("/links/shorten", urlShortenHandler.ShortenUrl)
+        }</span>
 
         // Register Swagger documentation endpoint
-        a.app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-}</span>
+        <span class="cov10" title="5">a.app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))</span>
+}
 </pre>
 		
 		<pre class="file" id="file1" style="display: none">package api
@@ -191,17 +244,17 @@ type Config struct {
         InstanceID  string `default:"" envconfig:"INSTANCE_ID"`
 }
 
-func NewConfig() (*Config, error) <span class="cov10" title="2">{
+func NewConfig() (*Config, error) <span class="cov8" title="1">{
         cfg := &amp;Config{}
         err := envconfig.Process("", cfg)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
-        <span class="cov10" title="2">if cfg.InstanceID == "" </span><span class="cov10" title="2">{
+        <span class="cov8" title="1">if cfg.InstanceID == "" </span><span class="cov8" title="1">{
                 // The most commonly used UUID library for Go is github.com/google/uuid
                 cfg.InstanceID = uuid.New().String()
         }</span>
-        <span class="cov10" title="2">return cfg, nil</span>
+        <span class="cov8" title="1">return cfg, nil</span>
 }
 </pre>
 		
@@ -252,7 +305,7 @@ type HealthCheck interface {
 //
 // Returns:
 //   - HealthCheck: An interface implementation that handles health check HTTP requests.
-func NewHealthCheck(svc service.HealthCheck) HealthCheck <span class="cov10" title="3">{
+func NewHealthCheck(svc service.HealthCheck) HealthCheck <span class="cov10" title="7">{
         return &amp;healthCheckHandler{
                 healthCheckSvc: svc,
         }
@@ -263,16 +316,25 @@ func NewHealthCheck(svc service.HealthCheck) HealthCheck <span class="cov10" tit
 // @Tags health_check
 // @Produce json
 // @Success 200 {object} healthCheckResponse
-// @Failure 500 {string} Internal Server Error
-// @Router /health-check [get]
-func (h *healthCheckHandler) Check(c *gin.Context) <span class="cov6" title="2">{
-        message, serviceName, instanceID := h.healthCheckSvc.Check()
-        c.JSON(http.StatusOK, healthCheckResponse{
+// @Failure 503 {object} map[string]string "Service Unavailable - dependency unhealthy"
+// @Router v1/health-check [get]
+func (h *healthCheckHandler) Check(c *gin.Context) <span class="cov6" title="3">{
+        message, serviceName, instanceID, err := h.healthCheckSvc.Check(c)
+        if err != nil </span><span class="cov1" title="1">{
+                c.JSON(http.StatusServiceUnavailable, gin.H{
+                        "message":      message,
+                        "service_name": serviceName,
+                        "instance_id":  instanceID,
+                        "error":        "Internal Server Error",
+                })
+                return
+        }</span>
+        <span class="cov4" title="2">c.JSON(http.StatusOK, healthCheckResponse{
                 Message:     message,
                 ServiceName: serviceName,
                 InstanceID:  instanceID,
-        })
-}</span>
+        })</span>
+}
 </pre>
 		
 		<pre class="file" id="file3" style="display: none">package handler
@@ -301,7 +363,7 @@ type Password interface {
 
 // NewPassword creates a new password handler with the given password service.
 // It accepts service.Password interface to enable loose coupling and testability.
-func NewPassword(svc service.Password) Password <span class="cov10" title="4">{
+func NewPassword(svc service.Password) Password <span class="cov10" title="7">{
         return &amp;passwordHandler{svc: svc}
 }</span>
 
@@ -315,51 +377,467 @@ func NewPassword(svc service.Password) Password <span class="cov10" title="4">{
 // @Produce plain
 // @Success 200 {string} string "Generated password"
 // @Failure 500 {string} string "Error message"
-// @Router /gen-pass [get]
-func (h *passwordHandler) GenPass(c *gin.Context) <span class="cov8" title="3">{
+// @Router v1/gen-pass [get]
+func (h *passwordHandler) GenPass(c *gin.Context) <span class="cov6" title="3">{
         pass, err := h.svc.GeneratePassword()
         if err != nil </span><span class="cov1" title="1">{
                 c.String(http.StatusInternalServerError, "err")
                 return
         }</span>
-        <span class="cov5" title="2">c.String(http.StatusOK, pass)</span>
+        <span class="cov4" title="2">c.String(http.StatusOK, pass)</span>
 }
 </pre>
 		
-		<pre class="file" id="file4" style="display: none">package service
+		<pre class="file" id="file4" style="display: none">// Package handler provides HTTP handlers for the bookmark service API.
+// This file contains the URL shortening handler which generates short codes for URLs.
+package handler
 
-const (
-        HealthCheckOK = "OK"
+import (
+        "net/http"
+
+        "github.com/HadesHo3820/ebvn-golang-course/internal/service"
+        "github.com/gin-gonic/gin"
 )
 
-// healthCheckService holds the configuration values needed for health checks.
-type healthCheckService struct {
-        serviceName string
-        instanceID  string
+// urlShortenRequest represents the JSON request body for URL shortening.
+// It contains the original URL to shorten and an optional expiration time.
+type urlShortenRequest struct {
+        // Url is the original URL to be shortened.
+        // binding:"required" makes sure this field is present
+        // binding:"url" validates that the string is a valid URL format
+        Url string `json:"url" binding:"required,url" example:"https://google.com"`
+        // Exp is the optional expiration time in seconds for the shortened URL.
+        // binding:"gte=0" ensures the expiration time is greater than or equal to 0
+        Exp int `json:"exp" binding:"required,gte=0,lte=604800" example:"86400"`
 }
 
-// HealthCheck defines the interface for health check operations.
-//go:generate mockery --name HealthCheck --filename health_check_service.go
-type HealthCheck interface {
-        Check() (string, string, string)
+// urlShortenResponse represents the JSON response for a successful URL shortening.
+type urlShortenResponse struct {
+        // Message indicates the status of the operation.
+        Message string `json:"message" example:"Shorten URL generated successfully!"`
+        // Code is the generated short code that maps to the original URL.
+        Code string `json:"code" example:"string"`
 }
 
-// NewHealthCheck creates a new HealthCheck service with the provided config values.
-// This follows the Dependency Injection pattern - config is passed in from outside.
-func NewHealthCheck(serviceName, instanceID string) HealthCheck <span class="cov10" title="3">{
-        return &amp;healthCheckService{
-                serviceName: serviceName,
-                instanceID:  instanceID,
+// urlShortenHandler is the concrete implementation of the UrlShorten interface.
+// It holds a reference to the URL shortening service.
+type urlShortenHandler struct {
+        urlService service.ShortenUrl
+}
+
+// UrlShorten defines the interface for URL shortening HTTP handlers.
+// This interface allows for dependency injection and easier testing.
+type UrlShorten interface {
+        // ShortenUrl handles HTTP requests to shorten a URL.
+        ShortenUrl(c *gin.Context)
+}
+
+// NewUrlShorten creates a new UrlShorten handler with the provided service dependency.
+// It follows the constructor injection pattern for dependency management.
+//
+// Parameters:
+//   - svc: The URL shortening service that provides the business logic.
+//
+// Returns:
+//   - UrlShorten: An interface implementation that handles URL shortening HTTP requests.
+func NewUrlShorten(svc service.ShortenUrl) UrlShorten <span class="cov10" title="11">{
+        return &amp;urlShortenHandler{
+                urlService: svc,
         }
 }</span>
 
-// Check returns the service name, instance ID, and app port.
-func (s *healthCheckService) Check() (string, string, string) <span class="cov6" title="2">{
-        return HealthCheckOK, s.serviceName, s.instanceID
+// @Summary Shorten URL
+// @Description Generate a short code for the provided URL
+// @Tags URL
+// @Accept json
+// @Produce json
+// @Param request body urlShortenRequest true "URL shorten request"
+// @Success 200 {object} urlShortenResponse
+// @Failure 400 {object} map[string]string "Bad Request - invalid URL or validation error"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router v1/links/shorten [post]
+func (h *urlShortenHandler) ShortenUrl(c *gin.Context) <span class="cov9" title="9">{
+        var req urlShortenRequest
+        if err := c.ShouldBindJSON(&amp;req); err != nil </span><span class="cov7" title="5">{
+                c.JSON(http.StatusBadRequest, gin.H{"message": "wrong input"})
+                return
+        }</span>
+
+        <span class="cov6" title="4">code, err := h.urlService.ShortenUrl(c, req.Url, req.Exp)
+        if err != nil </span><span class="cov1" title="1">{
+                c.JSON(http.StatusInternalServerError, gin.H{"message": "internal server error"})
+                return
+        }</span>
+
+        <span class="cov5" title="3">c.JSON(http.StatusOK, urlShortenResponse{
+                Message: "Shorten URL generated successfully!",
+                Code:    code,
+        })</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">// Package repository provides the data access layer for the application.
+// This file contains the health check repository for verifying external dependencies.
+package repository
+
+import (
+        "context"
+
+        "github.com/redis/go-redis/v9"
+)
+
+// HealthChecker defines the interface for health check operations on external dependencies.
+// This abstraction allows the service layer to verify connectivity without knowing
+// the specific implementation details (Clean Architecture / Hexagonal pattern).
+//
+//go:generate mockery --name HealthChecker --dir ../../internal/repository --output ../../internal/service/mocks --filename health_checker.go
+type HealthChecker interface {
+        // Ping checks if the dependency is reachable and healthy.
+        // Returns nil if healthy, error otherwise.
+        Ping(ctx context.Context) error
+}
+
+// redisHealthChecker is a Redis-backed implementation of HealthChecker.
+type redisHealthChecker struct {
+        client *redis.Client
+}
+
+// NewRedisHealthChecker creates a new HealthChecker that verifies Redis connectivity.
+func NewRedisHealthChecker(client *redis.Client) HealthChecker <span class="cov10" title="5">{
+        return &amp;redisHealthChecker{client: client}
+}</span>
+
+// Ping checks if Redis is reachable by sending a PING command.
+func (r *redisHealthChecker) Ping(ctx context.Context) error <span class="cov1" title="1">{
+        return r.client.Ping(ctx).Err()
 }</span>
 </pre>
 		
-		<pre class="file" id="file5" style="display: none">package service
+		<pre class="file" id="file6" style="display: none">// Package repository provides the data access layer for the application.
+package repository
+
+import (
+        "context"
+        "time"
+
+        "github.com/redis/go-redis/v9"
+)
+
+// urlExpTime defines the expiration duration for URLs stored in the cache.
+const (
+        urlExpTime = 24 * time.Hour
+)
+
+// UrlStorage defines the interface for storing and retrieving URLs.
+//
+//go:generate mockery --name UrlStorage --dir ../../internal/repository --output ../../internal/service/mocks --filename url_storage.go
+type UrlStorage interface {
+        // StoreUrl associates a code with a URL.
+        StoreUrl(ctx context.Context, code, url string) error
+        // StoreUrlIfNotExists atomically stores the URL only if the code doesn't exist.
+        // Returns true if stored successfully, false if the code already exists.
+        StoreUrlIfNotExists(ctx context.Context, code, url string, exp int) (bool, error)
+        // GetUrl retrieves the URL for a given code.
+        GetUrl(ctx context.Context, code string) (string, error)
+        // Exists checks if a code is already stored.
+        Exists(ctx context.Context, code string) (bool, error)
+}
+
+// urlStorage is a Redis-backed implementation of UrlStorage.
+type urlStorage struct {
+        c *redis.Client
+}
+
+// NewUrlStorage creates a new instance of UrlStorage.
+func NewUrlStorage(c *redis.Client) UrlStorage <span class="cov10" title="13">{
+        return &amp;urlStorage{c: c}
+}</span>
+
+// StoreUrl saves the code and URL pair in Redis with an expiration time.
+func (s *urlStorage) StoreUrl(ctx context.Context, code, url string) error <span class="cov3" title="2">{
+        return s.c.Set(ctx, code, url, urlExpTime).Err()
+}</span>
+
+// StoreUrlIfNotExists atomically stores the URL using Redis SETNX.
+// This operation is atomic: the key is only set if it doesn't already exist.
+// If exp &gt; 0, uses the provided expiration in seconds; otherwise uses the default urlExpTime.
+// Returns true if the URL was stored (key was new), false if the code already exists.
+func (s *urlStorage) StoreUrlIfNotExists(ctx context.Context, code, url string, exp int) (bool, error) <span class="cov5" title="4">{
+        expDuration := urlExpTime
+        if exp &gt; 0 </span><span class="cov1" title="1">{
+                expDuration = time.Duration(exp) * time.Second
+        }</span>
+        <span class="cov5" title="4">return s.c.SetNX(ctx, code, url, expDuration).Result()</span>
+}
+
+// GetUrl retrieves the original URL from Redis using the provided code.
+func (s *urlStorage) GetUrl(ctx context.Context, code string) (string, error) <span class="cov0" title="0">{
+        return s.c.Get(ctx, code).Result()
+}</span>
+
+// Exists checks if a code exists in Redis.
+func (s *urlStorage) Exists(ctx context.Context, code string) (bool, error) <span class="cov4" title="3">{
+        result, err := s.c.Exists(ctx, code).Result()
+        if err != nil </span><span class="cov1" title="1">{
+                return false, err
+        }</span>
+
+        <span class="cov3" title="2">return result &gt; 0, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">// Package service provides business logic implementations for the application.
+// This file contains the health check service which verifies service health
+// including external dependency connectivity.
+package service
+
+import (
+        "context"
+
+        "github.com/HadesHo3820/ebvn-golang-course/internal/repository"
+)
+
+const (
+        // HealthCheckOK is the message returned when the service is healthy.
+        HealthCheckOK = "OK"
+        // HealthCheckUnhealthy is the message returned when a dependency is unhealthy.
+        HealthCheckUnhealthy = "UNHEALTHY"
+)
+
+// healthCheckService holds the configuration values and dependencies needed for health checks.
+type healthCheckService struct {
+        serviceName   string
+        instanceID    string
+        healthChecker repository.HealthChecker
+}
+
+// HealthCheck defines the interface for health check operations.
+//
+//go:generate mockery --name HealthCheck --filename health_check_service.go
+type HealthCheck interface {
+        // Check verifies the health of the service and its dependencies.
+        // Returns status message, service name, instance ID, and any error.
+        Check(ctx context.Context) (string, string, string, error)
+}
+
+// NewHealthCheck creates a new HealthCheck service with the provided config values
+// and optional health checker for verifying external dependencies.
+//
+// Parameters:
+//   - serviceName: The name of this service.
+//   - instanceID: The unique identifier for this instance.
+//   - healthChecker: Optional HealthChecker for verifying dependencies (can be nil).
+//
+// Returns:
+//   - HealthCheck: The health check service implementation.
+func NewHealthCheck(serviceName, instanceID string, healthChecker repository.HealthChecker) HealthCheck <span class="cov10" title="8">{
+        return &amp;healthCheckService{
+                serviceName:   serviceName,
+                instanceID:    instanceID,
+                healthChecker: healthChecker,
+        }
+}</span>
+
+// Check verifies the health of the service and its dependencies.
+// If a HealthChecker is configured, it pings the dependency (e.g., Redis).
+// Returns an error if any dependency is unhealthy.
+func (s *healthCheckService) Check(ctx context.Context) (string, string, string, error) <span class="cov7" title="4">{
+        // If a health checker is configured, verify the dependency
+        if s.healthChecker != nil </span><span class="cov5" title="3">{
+                if err := s.healthChecker.Ping(ctx); err != nil </span><span class="cov1" title="1">{
+                        return HealthCheckUnhealthy, s.serviceName, s.instanceID, err
+                }</span>
+        }
+        <span class="cov5" title="3">return HealthCheckOK, s.serviceName, s.instanceID, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package service
+
+import "github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
+
+const (
+        // passLength defines the default length of the generated password.
+        passLength = 10
+)
+
+// passwordService implements the Password interface.
+type passwordService struct{}
+
+// Password defines the interface for password-related operations.
+//
+//go:generate mockery --name Password --filename pass_service.go
+type Password interface {
+        // GeneratePassword creates a new random password.
+        GeneratePassword() (string, error)
+}
+
+// NewPassword creates a new instance of the password service.
+func NewPassword() Password <span class="cov10" title="6">{
+        return &amp;passwordService{}
+}</span>
+
+// GeneratePassword generates a cryptographically secure random password.
+// It uses characters from the predefined charset and has a fixed length of 10.
+// Returns the generated password string or an error if the random number generator fails.
+func (s *passwordService) GeneratePassword() (string, error) <span class="cov4" title="2">{
+        return stringutils.GenerateCode(passLength)
+}</span>
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">// Package service provides business logic implementations for the application.
+// This file contains the URL shortening service which generates unique codes
+// for URLs and stores them in a repository for later retrieval.
+package service
+
+import (
+        "context"
+        "fmt"
+
+        "github.com/HadesHo3820/ebvn-golang-course/internal/repository"
+        "github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
+)
+
+// urlCodeLength defines the length of the generated short code for URLs.
+// A 7-character alphanumeric code provides ~3.5 trillion unique combinations.
+const (
+        urlCodeLength = 7
+        maxRetries    = 5 // Maximum attempts to generate a unique code
+)
+
+// ShortenUrl defines the interface for URL shortening operations.
+// Implementations of this interface handle the generation of short codes
+// and persistence of URL mappings.
+//
+//go:generate mockery --name ShortenUrl --output ./mocks --filename shorten_url.go
+type ShortenUrl interface {
+        // ShortenUrl generates a unique short code for the given URL
+        // and stores the mapping in the repository.
+        ShortenUrl(ctx context.Context, url string, exp int) (string, error)
+}
+
+// shortenUrl is the concrete implementation of the ShortenUrl interface.
+// It uses a UrlStorage repository for persisting URL-to-code mappings.
+type shortenUrl struct {
+        repo   repository.UrlStorage
+        keyGen stringutils.KeyGenerator
+}
+
+// NewShortenUrl creates a new instance of the ShortenUrl service.
+// It requires a UrlStorage repository for storing shortened URL mappings.
+func NewShortenUrl(repo repository.UrlStorage, keyGen stringutils.KeyGenerator) ShortenUrl <span class="cov9" title="10">{
+        return &amp;shortenUrl{repo: repo, keyGen: keyGen}
+}</span>
+
+// ShortenUrl generates a unique alphanumeric code for the given URL,
+// stores the code-to-URL mapping in the repository, and returns the code.
+//
+// The method attempts to generate a unique code up to maxRetries times.
+// For each attempt, it uses an atomic SETNX operation to store the URL
+// only if the code doesn't already exist. If a collision is detected
+// (code already exists), it retries with a new code.
+//
+// The generated code is urlCodeLength characters long and uses a
+// cryptographically secure random number generator.
+//
+// Returns:
+//   - The generated short code on success.
+//   - An error if code generation fails, storage fails, or max retries exceeded.
+func (s *shortenUrl) ShortenUrl(ctx context.Context, url string, exp int) (string, error) <span class="cov7" title="6">{
+        for range maxRetries </span><span class="cov10" title="11">{
+                // generate random code
+                urlCode, err := s.keyGen.GenerateCode(urlCodeLength)
+                if err != nil </span><span class="cov1" title="1">{
+                        return "", err
+                }</span>
+
+                // atomically store url if code doesn't exist (SETNX)
+                <span class="cov9" title="10">stored, err := s.repo.StoreUrlIfNotExists(ctx, urlCode, url, exp)
+                if err != nil </span><span class="cov1" title="1">{
+                        return "", err
+                }</span>
+                <span class="cov9" title="9">if !stored </span><span class="cov7" title="6">{
+                        continue</span> // collision detected, retry with new code
+                }
+
+                <span class="cov5" title="3">return urlCode, nil</span>
+        }
+
+        <span class="cov1" title="1">return "", fmt.Errorf("failed to generate unique code after %d attempts", maxRetries)</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">// Package redis provides utilities for creating and managing Redis client connections.
+// It handles configuration loading from environment variables and client initialization.
+package redis
+
+import "github.com/redis/go-redis/v9"
+
+// NewClient creates a new Redis client using configuration loaded from environment variables.
+// The envPrefix parameter allows namespacing environment variables (e.g., "CACHE_" would look
+// for CACHE_REDIS_ADDRESS instead of REDIS_ADDRESS). Pass an empty string for default variable names.
+//
+// Returns:
+//   - *redis.Client: A configured Redis client ready for use.
+//   - error: An error if configuration loading fails.
+func NewClient(envPrefix string) (*redis.Client, error) <span class="cov0" title="0">{
+        cfg, err := newConfig(envPrefix)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">redisClient := redis.NewClient(&amp;redis.Options{
+                Addr:     cfg.Address,
+                Password: cfg.Password,
+                DB:       cfg.DB,
+        })
+
+        return redisClient, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package redis
+
+import (
+        "github.com/kelseyhightower/envconfig"
+)
+
+type config struct {
+        Address  string `default:"localhost:6379" envconfig:"REDIS_ADDR"`
+        Password string `default:"" envconfig:"REDIS_PASSWORD"`
+        DB       int `default:"0" envconfig:"REDIS_DB"`
+}
+
+func newConfig(envPrefix string) (*config, error) <span class="cov0" title="0">{
+        cfg := &amp;config{}
+        err := envconfig.Process(envPrefix, cfg)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return cfg, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package redis
+
+import (
+        "testing"
+
+        "github.com/alicebob/miniredis/v2"
+        "github.com/redis/go-redis/v9"
+)
+
+// InitMockRedis creates and returns a Redis client connected to an in-memory
+// miniredis instance for testing purposes. The miniredis server lifecycle is
+// automatically managed by the test and will be cleaned up when the test ends.
+func InitMockRedis(t *testing.T) *redis.Client <span class="cov10" title="13">{
+        mock := miniredis.RunT(t)
+        return redis.NewClient(&amp;redis.Options{
+                Addr: mock.Addr(),
+        })
+}</span>
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package stringutils
 
 import (
         "bytes"
@@ -370,42 +848,38 @@ import (
 const (
         // charset contains the alphanumeric characters used for password generation.
         charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        // passLength defines the default length of the generated password.
-        passLength = 10
 )
 
-// passwordService implements the Password interface.
-type passwordService struct{}
-
-// Password defines the interface for password-related operations.
-//go:generate mockery --name Password --filename pass_service.go
-type Password interface {
-        // GeneratePassword creates a new random password.
-        GeneratePassword() (string, error)
+// KeyGenerator defines the interface for generating random codes.
+//go:generate mockery --name KeyGenerator --filename key_generator.go
+type KeyGenerator interface {
+        GenerateCode(length int) (string, error)
 }
 
-// NewPassword creates a new instance of the password service.
-func NewPassword() Password <span class="cov4" title="3">{
-        return &amp;passwordService{}
+type keyGen struct{}
+
+func NewKeyGenerator() KeyGenerator <span class="cov4" title="3">{
+        return &amp;keyGen{}
 }</span>
 
-// GeneratePassword generates a cryptographically secure random password.
-// It uses characters from the predefined charset and has a fixed length of 10.
-// Returns the generated password string or an error if the random number generator fails.
-func (s *passwordService) GeneratePassword() (string, error) <span class="cov3" title="2">{
+func (k *keyGen) GenerateCode(length int) (string, error) <span class="cov1" title="1">{
+        return GenerateCode(length)
+}</span>
+
+func GenerateCode(length int) (string, error) <span class="cov4" title="3">{
         var strBuilder bytes.Buffer
 
         // generate random password of length passLength
-        for range passLength </span><span class="cov10" title="20">{
+        for range length </span><span class="cov10" title="27">{
                 // Generate a random index using crypto/rand for cryptographic security.
                 randomIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
                 if err != nil </span><span class="cov0" title="0">{
                         return "", err
                 }</span>
                 // Select the character at the random index and append it to the result.
-                <span class="cov10" title="20">strBuilder.WriteByte(charset[randomIndex.Int64()])</span>
+                <span class="cov10" title="27">strBuilder.WriteByte(charset[randomIndex.Int64()])</span>
         }
-        <span class="cov3" title="2">return strBuilder.String(), nil</span>
+        <span class="cov4" title="3">return strBuilder.String(), nil</span>
 }
 </pre>
 		

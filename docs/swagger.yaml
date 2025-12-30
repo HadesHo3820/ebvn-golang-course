@@ -19,6 +19,7 @@ definitions:
           Exp is the optional expiration time in seconds for the shortened URL.
           binding:"gte=0" ensures the expiration time is greater than or equal to 0
         example: 86400
+        maximum: 604800
         minimum: 0
         type: integer
       url:
@@ -29,6 +30,7 @@ definitions:
         example: https://google.com
         type: string
     required:
+    - exp
     - url
     type: object
   internal_handler.urlShortenResponse:
@@ -48,7 +50,7 @@ info:
   title: EBVN Bookmark API
   version: "1.0"
 paths:
-  /gen-pass:
+  /v1/gen-pass:
     get:
       description: Generates a cryptographically secure random password
       produces:
@@ -65,7 +67,7 @@ paths:
       summary: Generate a random password
       tags:
       - password
-  /health-check:
+  /v1/health-check:
     get:
       description: Health check
       produces:
@@ -84,7 +86,7 @@ paths:
       summary: Health check
       tags:
       - health_check
-  /links/shorten:
+  /v1/links/shorten:
     post:
       consumes:
       - application/json
@@ -117,5 +119,5 @@ paths:
             type: object
       summary: Shorten URL
       tags:
-      - url
+      - URL
 swagger: "2.0"

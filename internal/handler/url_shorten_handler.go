@@ -18,7 +18,7 @@ type urlShortenRequest struct {
 	Url string `json:"url" binding:"required,url" example:"https://google.com"`
 	// Exp is the optional expiration time in seconds for the shortened URL.
 	// binding:"gte=0" ensures the expiration time is greater than or equal to 0
-	Exp int `json:"exp" binding:"gte=0" example:"86400"`
+	Exp int `json:"exp" binding:"required,gte=0,lte=604800" example:"86400"`
 }
 
 // urlShortenResponse represents the JSON response for a successful URL shortening.
@@ -58,24 +58,24 @@ func NewUrlShorten(svc service.ShortenUrl) UrlShorten {
 
 // @Summary Shorten URL
 // @Description Generate a short code for the provided URL
-// @Tags url
+// @Tags URL
 // @Accept json
 // @Produce json
 // @Param request body urlShortenRequest true "URL shorten request"
 // @Success 200 {object} urlShortenResponse
 // @Failure 400 {object} map[string]string "Bad Request - invalid URL or validation error"
 // @Failure 500 {object} map[string]string "Internal Server Error"
-// @Router /links/shorten [post]
+// @Router /v1/links/shorten [post]
 func (h *urlShortenHandler) ShortenUrl(c *gin.Context) {
 	var req urlShortenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "wrong input"})
 		return
 	}
 
 	code, err := h.urlService.ShortenUrl(c, req.Url, req.Exp)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal server error"})
 		return
 	}
 

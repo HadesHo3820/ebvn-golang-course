@@ -32,13 +32,14 @@ type ShortenUrl interface {
 // shortenUrl is the concrete implementation of the ShortenUrl interface.
 // It uses a UrlStorage repository for persisting URL-to-code mappings.
 type shortenUrl struct {
-	repo repository.UrlStorage
+	repo   repository.UrlStorage
+	keyGen stringutils.KeyGenerator
 }
 
 // NewShortenUrl creates a new instance of the ShortenUrl service.
 // It requires a UrlStorage repository for storing shortened URL mappings.
-func NewShortenUrl(repo repository.UrlStorage) ShortenUrl {
-	return &shortenUrl{repo: repo}
+func NewShortenUrl(repo repository.UrlStorage, keyGen stringutils.KeyGenerator) ShortenUrl {
+	return &shortenUrl{repo: repo, keyGen: keyGen}
 }
 
 // ShortenUrl generates a unique alphanumeric code for the given URL,
@@ -58,7 +59,7 @@ func NewShortenUrl(repo repository.UrlStorage) ShortenUrl {
 func (s *shortenUrl) ShortenUrl(ctx context.Context, url string, exp int) (string, error) {
 	for range maxRetries {
 		// generate random code
-		urlCode, err := stringutils.GenerateCode(urlCodeLength)
+		urlCode, err := s.keyGen.GenerateCode(urlCodeLength)
 		if err != nil {
 			return "", err
 		}

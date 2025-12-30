@@ -4,6 +4,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 // TestUrlShortenHandler_ShortenUrl validates the ShortenUrl handler.
@@ -27,32 +27,32 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 	testCases := []struct {
 		name           string
 		setupRequest   func() *http.Request
-		setupMockSvc   func() *mocks.ShortenUrl
+		setupMockSvc   func(ctx context.Context) *mocks.ShortenUrl
 		expectedStatus int
-		expectedBody   map[string]interface{}
+		expectedBody   map[string]any
 	}{
 		{
-			name: "success - shorten URL with default expiration",
+			name: "success - shorten URL with valid expiration",
 			setupRequest: func() *http.Request {
-				body := map[string]interface{}{
+				body := map[string]any{
 					"url": "https://example.com",
-					"exp": 0,
+					"exp": 3600,
 				}
 				jsonBody, _ := json.Marshal(body)
-				return httptest.NewRequest(http.MethodPost, "/links/shorten", bytes.NewReader(jsonBody))
+				return httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 			},
-			setupMockSvc: func() *mocks.ShortenUrl {
+			setupMockSvc: func(ctx context.Context) *mocks.ShortenUrl {
 				svcMock := mocks.NewShortenUrl(t)
 				svcMock.On("ShortenUrl",
 					// context matcher
-					mock.Anything,
+					ctx,
 					"https://example.com",
-					0,
+					3600,
 				).Return("abc1234", nil).Once()
 				return svcMock
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody: map[string]interface{}{
+			expectedBody: map[string]any{
 				"message": "Shorten URL generated successfully!",
 				"code":    "abc1234",
 			},
@@ -60,17 +60,17 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 		{
 			name: "success - shorten URL with custom expiration",
 			setupRequest: func() *http.Request {
-				body := map[string]interface{}{
+				body := map[string]any{
 					"url": "https://google.com",
 					"exp": 3600,
 				}
 				jsonBody, _ := json.Marshal(body)
-				return httptest.NewRequest(http.MethodPost, "/links/shorten", bytes.NewReader(jsonBody))
+				return httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 			},
-			setupMockSvc: func() *mocks.ShortenUrl {
+			setupMockSvc: func(ctx context.Context) *mocks.ShortenUrl {
 				svcMock := mocks.NewShortenUrl(t)
 				svcMock.On("ShortenUrl",
-					mock.Anything,
+					ctx,
 					"https://google.com",
 					3600,
 				).Return("xyz7890", nil).Once()
@@ -85,13 +85,13 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 		{
 			name: "bad request - missing URL",
 			setupRequest: func() *http.Request {
-				body := map[string]interface{}{
+				body := map[string]any{
 					"exp": 3600,
 				}
 				jsonBody, _ := json.Marshal(body)
-				return httptest.NewRequest(http.MethodPost, "/links/shorten", bytes.NewReader(jsonBody))
+				return httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 			},
-			setupMockSvc: func() *mocks.ShortenUrl {
+			setupMockSvc: func(ctx context.Context) *mocks.ShortenUrl {
 				// No mock setup needed - validation fails before service call
 				return mocks.NewShortenUrl(t)
 			},
@@ -101,14 +101,14 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 		{
 			name: "bad request - invalid URL format",
 			setupRequest: func() *http.Request {
-				body := map[string]interface{}{
+				body := map[string]any{
 					"url": "not-a-valid-url",
-					"exp": 0,
+					"exp": 3600,
 				}
 				jsonBody, _ := json.Marshal(body)
-				return httptest.NewRequest(http.MethodPost, "/links/shorten", bytes.NewReader(jsonBody))
+				return httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 			},
-			setupMockSvc: func() *mocks.ShortenUrl {
+			setupMockSvc: func(ctx context.Context) *mocks.ShortenUrl {
 				// No mock setup needed - validation fails before service call
 				return mocks.NewShortenUrl(t)
 			},
@@ -118,14 +118,14 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 		{
 			name: "bad request - negative expiration",
 			setupRequest: func() *http.Request {
-				body := map[string]interface{}{
+				body := map[string]any{
 					"url": "https://example.com",
 					"exp": -100,
 				}
 				jsonBody, _ := json.Marshal(body)
-				return httptest.NewRequest(http.MethodPost, "/links/shorten", bytes.NewReader(jsonBody))
+				return httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 			},
-			setupMockSvc: func() *mocks.ShortenUrl {
+			setupMockSvc: func(ctx context.Context) *mocks.ShortenUrl {
 				// No mock setup needed - validation fails before service call
 				return mocks.NewShortenUrl(t)
 			},
@@ -135,25 +135,25 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 		{
 			name: "internal server error - service failure",
 			setupRequest: func() *http.Request {
-				body := map[string]interface{}{
+				body := map[string]any{
 					"url": "https://example.com",
-					"exp": 0,
+					"exp": 3600,
 				}
 				jsonBody, _ := json.Marshal(body)
-				return httptest.NewRequest(http.MethodPost, "/links/shorten", bytes.NewReader(jsonBody))
+				return httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 			},
-			setupMockSvc: func() *mocks.ShortenUrl {
+			setupMockSvc: func(ctx context.Context) *mocks.ShortenUrl {
 				svcMock := mocks.NewShortenUrl(t)
 				svcMock.On("ShortenUrl",
-					mock.Anything,
+					ctx,
 					"https://example.com",
-					0,
+					3600,
 				).Return("", errors.New("redis connection failed")).Once()
 				return svcMock
 			},
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody: map[string]interface{}{
-				"error": "redis connection failed",
+			expectedBody: map[string]any{
+				"message": "internal server error",
 			},
 		},
 	}
@@ -174,7 +174,7 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 			gctx.Request = req
 
 			// Setup the mock service
-			svcMock := tc.setupMockSvc()
+			svcMock := tc.setupMockSvc(gctx)
 
 			// Create the handler with the mock service
 			handler := NewUrlShorten(svcMock)
@@ -187,14 +187,11 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 
 			// Assert response body if expected
 			if tc.expectedBody != nil {
-				var actualBody map[string]interface{}
+				var actualBody map[string]any
 				err := json.Unmarshal(rec.Body.Bytes(), &actualBody)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expectedBody, actualBody)
 			}
-
-			// Verify mock expectations
-			svcMock.AssertExpectations(t)
 		})
 	}
 }

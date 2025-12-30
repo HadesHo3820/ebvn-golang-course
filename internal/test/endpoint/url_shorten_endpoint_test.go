@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
+	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,11 +35,6 @@ import (
 func TestUrlShortenEndpoint(t *testing.T) {
 	t.Parallel()
 
-	cfg, err := api.NewConfig()
-	if err != nil {
-		t.Fatalf("failed to load config: %v", err)
-	}
-
 	testCases := []struct {
 		name           string
 		setupTestHTTP  func(api api.Engine) *httptest.ResponseRecorder
@@ -47,12 +44,12 @@ func TestUrlShortenEndpoint(t *testing.T) {
 		{
 			name: "success - shorten valid URL",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				body := map[string]interface{}{
+				body := map[string]any{
 					"url": "https://example.com",
 					"exp": 3600,
 				}
 				jsonBody, _ := json.Marshal(body)
-				req := httptest.NewRequest(http.MethodPost, "/links/shorten", bytes.NewReader(jsonBody))
+				req := httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 				req.Header.Set("Content-Type", "application/json")
 				rec := httptest.NewRecorder()
 				api.ServeHTTP(rec, req)
@@ -71,12 +68,12 @@ func TestUrlShortenEndpoint(t *testing.T) {
 		{
 			name: "bad request - invalid URL format",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				body := map[string]interface{}{
+				body := map[string]any{
 					"url": "not-a-valid-url",
-					"exp": 0,
+					"exp": 3600,
 				}
 				jsonBody, _ := json.Marshal(body)
-				req := httptest.NewRequest(http.MethodPost, "/links/shorten", bytes.NewReader(jsonBody))
+				req := httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 				req.Header.Set("Content-Type", "application/json")
 				rec := httptest.NewRecorder()
 				api.ServeHTTP(rec, req)
@@ -84,17 +81,17 @@ func TestUrlShortenEndpoint(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			validateBody: func(t *testing.T, body map[string]interface{}) {
-				assert.Contains(t, body["error"], "url")
+				assert.Equal(t, "wrong input", body["message"])
 			},
 		},
 		{
 			name: "bad request - missing URL",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				body := map[string]interface{}{
+				body := map[string]any{
 					"exp": 3600,
 				}
 				jsonBody, _ := json.Marshal(body)
-				req := httptest.NewRequest(http.MethodPost, "/links/shorten", bytes.NewReader(jsonBody))
+				req := httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 				req.Header.Set("Content-Type", "application/json")
 				rec := httptest.NewRecorder()
 				api.ServeHTTP(rec, req)
@@ -102,7 +99,7 @@ func TestUrlShortenEndpoint(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			validateBody: func(t *testing.T, body map[string]interface{}) {
-				assert.Contains(t, body["error"], "url")
+				assert.Equal(t, "wrong input", body["message"])
 			},
 		},
 	}
@@ -111,11 +108,13 @@ func TestUrlShortenEndpoint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			rec := tc.setupTestHTTP(api.New(cfg))
+			// Since the URL shortening feature doesn't require configuration,
+			// we can pass nil to the api.New function.
+			rec := tc.setupTestHTTP(api.New(&api.Config{}, redisPkg.InitMockRedis(t), stringutils.NewKeyGenerator()))
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
 
-			var resp map[string]interface{}
+			var resp map[string]any
 			err := json.Unmarshal(rec.Body.Bytes(), &resp)
 			assert.NoError(t, err)
 

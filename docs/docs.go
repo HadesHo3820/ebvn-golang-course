@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/gen-pass": {
+        "/v1/gen-pass": {
             "get": {
                 "description": "Generates a cryptographically secure random password",
                 "produces": [
@@ -41,7 +41,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/health-check": {
+        "/v1/health-check": {
             "get": {
                 "description": "Health check",
                 "produces": [
@@ -70,7 +70,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/links/shorten": {
+        "/v1/links/shorten": {
             "post": {
                 "description": "Generate a short code for the provided URL",
                 "consumes": [
@@ -80,7 +80,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "url"
+                    "URL"
                 ],
                 "summary": "Shorten URL",
                 "parameters": [
@@ -144,12 +144,14 @@ const docTemplate = `{
         "internal_handler.urlShortenRequest": {
             "type": "object",
             "required": [
+                "exp",
                 "url"
             ],
             "properties": {
                 "exp": {
                     "description": "Exp is the optional expiration time in seconds for the shortened URL.\nbinding:\"gte=0\" ensures the expiration time is greater than or equal to 0",
                     "type": "integer",
+                    "maximum": 604800,
                     "minimum": 0,
                     "example": 86400
                 },

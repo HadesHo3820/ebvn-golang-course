@@ -50,6 +50,15 @@ func TestUrlStorage_StoreURL(t *testing.T) {
 				assert.Equal(t, url, "https://google.com")
 			},
 		},
+		{
+			name: "redis connection",
+			setupMock: func() *redis.Client {
+				mock := redisPkg.InitMockRedis(t)
+				_ = mock.Close()
+				return mock
+			},
+			expectedErr: redis.ErrClosed,
+		},
 	}
 
 	// Iterate through each test case and execute as a sub-test.
@@ -111,6 +120,15 @@ func TestUrlStorage_Exists(t *testing.T) {
 			expectedExists: false,
 			expectedErr:    nil,
 		},
+		{
+			name: "redis connection",
+			setupMock: func() *redis.Client {
+				mock := redisPkg.InitMockRedis(t)
+				_ = mock.Close()
+				return mock
+			},
+			expectedErr: redis.ErrClosed,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -167,6 +185,15 @@ func TestUrlStorage_StoreUrlIfNotExists(t *testing.T) {
 			url:            "https://new-url.com",
 			expectedStored: false,
 			expectedErr:    nil,
+		},
+		{
+			name: "redis connection",
+			setupMock: func() *redis.Client {
+				mock := redisPkg.InitMockRedis(t)
+				_ = mock.Close()
+				return mock
+			},
+			expectedErr: redis.ErrClosed,
 		},
 	}
 
