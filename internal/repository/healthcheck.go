@@ -12,7 +12,7 @@ import (
 // This abstraction allows the service layer to verify connectivity without knowing
 // the specific implementation details (Clean Architecture / Hexagonal pattern).
 //
-//go:generate mockery --name HealthChecker --dir ../../internal/repository --output ../../internal/service/mocks --filename health_checker.go
+//go:generate mockery --name HealthChecker --filename health_checker.go
 type HealthChecker interface {
 	// Ping checks if the dependency is reachable and healthy.
 	// Returns nil if healthy, error otherwise.

@@ -22,7 +22,7 @@ const (
 // Implementations of this interface handle the generation of short codes
 // and persistence of URL mappings.
 //
-//go:generate mockery --name ShortenUrl --output ./mocks --filename shorten_url.go
+//go:generate mockery --name ShortenUrl --filename shorten_url.go
 type ShortenUrl interface {
 	// ShortenUrl generates a unique short code for the given URL
 	// and stores the mapping in the repository.

@@ -7,13 +7,15 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/repository/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
 	mockKeyGen "github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils/mocks"
 )
 
+// testErr is a sentinel error used across test cases
+// for consistent error comparison.
 var testErr = errors.New("test error")
 
 // TestShortenUrl_ShortenUrl validates the ShortenUrl method of the ShortenUrl service.
@@ -24,16 +26,16 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 
 	testCases := []struct {
 		name            string
-		setupMock       func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage
+		setupMockRepo   func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage
 		setupMockKeyGen func() *mockKeyGen.KeyGenerator
-		url             string
-		exp             int    // expiration time in seconds
+		urlInput        string
+		exp             int    // expiration time in seconds (0 means no expiration)
 		expectCode      string // expected code to be returned
 		expectedErr     error  // expected error (nil for no error)
 	}{
 		{
 			name: "successful storage on first attempt",
-			setupMock: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
+			setupMockRepo: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
 				mockRepo := mocks.NewUrlStorage(t)
 				// First call succeeds (stored = true)
 				// We only use mock.Anything to match any argument that is not defined in the test case
@@ -50,14 +52,14 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 					Return("1234567", nil).Once()
 				return m
 			},
-			url:         "https://example.com",
+			urlInput:    "https://example.com",
 			exp:         0,
 			expectCode:  "1234567",
 			expectedErr: nil,
 		},
 		{
 			name: "successful storage after one collision",
-			setupMock: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
+			setupMockRepo: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
 				mockRepo := mocks.NewUrlStorage(t)
 				// First call: collision (stored = false)
 				mockRepo.On("StoreUrlIfNotExists", ctx, mock.Anything, urlInput, expInput).
@@ -74,14 +76,14 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 					Return("1234567", nil).Twice()
 				return m
 			},
-			url:         "https://example.com",
+			urlInput:    "https://example.com",
 			exp:         3600,
 			expectCode:  "1234567",
 			expectedErr: nil,
 		},
 		{
 			name: "max retries exceeded - all collisions",
-			setupMock: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
+			setupMockRepo: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
 				mockRepo := mocks.NewUrlStorage(t)
 				// All 5 attempts result in collision
 				mockRepo.On("StoreUrlIfNotExists", ctx, mock.Anything, urlInput, expInput).
@@ -94,14 +96,14 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 					Return("1234567", nil).Times(5)
 				return mockKeyGen
 			},
-			url:         "https://example.com",
+			urlInput:    "https://example.com",
 			exp:         0,
 			expectCode:  "",
 			expectedErr: errors.New("failed to generate unique code after 5 attempts"),
 		},
 		{
 			name: "repository error",
-			setupMock: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
+			setupMockRepo: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
 				mockRepo := mocks.NewUrlStorage(t)
 				mockRepo.On("StoreUrlIfNotExists", ctx, mock.Anything, urlInput, expInput).
 					Return(false, errors.New("redis connection failed")).Once()
@@ -113,15 +115,15 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 					Return("1234567", nil).Once()
 				return mockKeyGen
 			},
-			url:         "https://example.com",
+			urlInput:    "https://example.com",
 			exp:         0,
 			expectCode:  "",
 			expectedErr: errors.New("redis connection failed"),
 		},
 		{
-			name: "KeyGen error",
-			url:  "https://example.com",
-			setupMock: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
+			name:     "KeyGen error",
+			urlInput: "https://example.com",
+			setupMockRepo: func(ctx context.Context, urlInput string, expInput int) *mocks.UrlStorage {
 				mockRepo := mocks.NewUrlStorage(t)
 				return mockRepo
 			},
@@ -142,12 +144,12 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 			ctx := t.Context()
 
 			// Setup
-			mockRepo := tc.setupMock(ctx, tc.url, tc.exp)
+			mockRepo := tc.setupMockRepo(ctx, tc.urlInput, tc.exp)
 			mockKeyGen := tc.setupMockKeyGen()
 			service := NewShortenUrl(mockRepo, mockKeyGen)
 
 			// Execute
-			code, err := service.ShortenUrl(ctx, tc.url, tc.exp)
+			code, err := service.ShortenUrl(ctx, tc.urlInput, tc.exp)
 
 			// Assert
 			assert.Equal(t, tc.expectCode, code)

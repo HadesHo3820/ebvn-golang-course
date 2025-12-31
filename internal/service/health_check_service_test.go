@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/repository"
-	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/repository/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

@@ -1,5 +1,7 @@
 // Package handler contains unit tests for the URL shortening handler.
-// These tests use mocks to isolate the handler logic from the service layer.
+// These tests use mocks to isolate the handler logic from the service layer,
+// ensuring that we only test the HTTP request/response handling and validation
+// logic without depending on actual service implementations.
 package handler
 
 import (
@@ -17,13 +19,26 @@ import (
 )
 
 // TestUrlShortenHandler_ShortenUrl validates the ShortenUrl handler.
-// It uses table-driven tests to cover success, validation errors, and service errors.
+// It uses table-driven tests to cover the following scenarios:
+//   - Success cases: valid URL with default and custom expiration times
+//   - Validation errors: missing URL, invalid URL format, negative expiration
+//   - Service errors: handling failures from the service layer
+//
+// Each test case sets up an HTTP request and a mock service, then verifies
+// that the handler returns the expected status code and response body.
 func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 	t.Parallel()
 
 	// Set Gin to test mode to reduce noise in test output
 	gin.SetMode(gin.TestMode)
 
+	// testCases defines a table of test scenarios for the ShortenUrl handler.
+	// Each test case contains:
+	//   - name: descriptive name for the test scenario
+	//   - setupRequest: factory function to create the HTTP request with specific body
+	//   - setupMockSvc: factory function to configure mock service expectations
+	//   - expectedStatus: the expected HTTP status code
+	//   - expectedBody: the expected JSON response body (nil if not checked)
 	testCases := []struct {
 		name           string
 		setupRequest   func() *http.Request
@@ -92,7 +107,8 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 				return httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 			},
 			setupMockSvc: func(ctx context.Context) *mocks.ShortenUrl {
-				// No mock setup needed - validation fails before service call
+				// No mock expectations set - request fails validation before reaching service layer.
+				// The mock is still created to satisfy the handler constructor.
 				return mocks.NewShortenUrl(t)
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -109,7 +125,8 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 				return httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 			},
 			setupMockSvc: func(ctx context.Context) *mocks.ShortenUrl {
-				// No mock setup needed - validation fails before service call
+				// No mock expectations set - request fails validation before reaching service layer.
+				// The mock is still created to satisfy the handler constructor.
 				return mocks.NewShortenUrl(t)
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -126,7 +143,8 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 				return httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 			},
 			setupMockSvc: func(ctx context.Context) *mocks.ShortenUrl {
-				// No mock setup needed - validation fails before service call
+				// No mock expectations set - request fails validation before reaching service layer.
+				// The mock is still created to satisfy the handler constructor.
 				return mocks.NewShortenUrl(t)
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -158,14 +176,17 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 		},
 	}
 
+	// Execute each test case in a subtest for better isolation and reporting.
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			t.Parallel() // Run subtests in parallel for faster execution
 
-			// Create a recorder to capture the response
+			// Create a ResponseRecorder to capture the HTTP response from the handler.
+			// This allows us to inspect status codes and response bodies after the call.
 			rec := httptest.NewRecorder()
 
-			// Create a Gin test context
+			// Create a Gin test context bound to the recorder.
+			// This simulates the Gin framework's request handling environment.
 			gctx, _ := gin.CreateTestContext(rec)
 
 			// Setup the request
