@@ -44,6 +44,7 @@ definitions:
         example: Shorten URL generated successfully!
         type: string
     type: object
+host: localhost:8080
 info:
   contact: {}
   description: A simple password generator API built with Go and Gin.
@@ -86,6 +87,34 @@ paths:
       summary: Health check
       tags:
       - health_check
+  /v1/links/{code}:
+    get:
+      description: Retrieve the original URL for a short code and redirect the client
+      parameters:
+      - description: Short code
+        example: abc1234
+        in: path
+        name: code
+        required: true
+        type: string
+      responses:
+        "302":
+          description: Redirects to the original URL
+        "400":
+          description: Bad Request - wrong format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Redirect to original URL
+      tags:
+      - URL
   /v1/links/shorten:
     post:
       consumes:

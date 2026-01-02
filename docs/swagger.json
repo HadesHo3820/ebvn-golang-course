@@ -6,6 +6,7 @@
         "contact": {},
         "version": "1.0"
     },
+    "host": "localhost:8080",
     "basePath": "/",
     "paths": {
         "/v1/gen-pass": {
@@ -96,6 +97,48 @@
                     },
                     "400": {
                         "description": "Bad Request - invalid URL or validation error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/links/{code}": {
+            "get": {
+                "description": "Retrieve the original URL for a short code and redirect the client",
+                "tags": [
+                    "URL"
+                ],
+                "summary": "Redirect to original URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "abc1234",
+                        "description": "Short code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Redirects to the original URL"
+                    },
+                    "400": {
+                        "description": "Bad Request - wrong format",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {

@@ -15,7 +15,7 @@ const (
 
 // UrlStorage defines the interface for storing and retrieving URLs.
 //
-//go:generate mockery --name UrlStorage --dir ../../internal/repository --output ../../internal/service/mocks --filename url_storage.go
+//go:generate mockery --name UrlStorage --filename url_storage.go
 type UrlStorage interface {
 	// StoreUrl associates a code with a URL.
 	StoreUrl(ctx context.Context, code, url string) error

@@ -10,6 +10,7 @@ import (
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // healthCheckResponse represents the JSON response structure for health check endpoints.
@@ -61,6 +62,11 @@ func NewHealthCheck(svc service.HealthCheck) HealthCheck {
 func (h *healthCheckHandler) Check(c *gin.Context) {
 	message, serviceName, instanceID, err := h.healthCheckSvc.Check(c)
 	if err != nil {
+		log.Error().
+			Str("service_name", serviceName).
+			Str("instance_id", instanceID).
+			Err(err).
+			Msg("Health check failed")
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"message":      message,
 			"service_name": serviceName,
