@@ -6,6 +6,7 @@ package endpoint
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
 	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -120,6 +122,116 @@ func TestUrlShortenEndpoint(t *testing.T) {
 
 			if tc.validateBody != nil {
 				tc.validateBody(t, resp)
+			}
+		})
+	}
+}
+
+// TestGetUrlEndpoint validates the /links/:code endpoint through the full HTTP stack.
+//
+// This is an integration test that exercises:
+//   - HTTP routing configuration for GET /v1/links/:code
+//   - Request handling through the Gin engine
+//   - Handler-to-service-to-repository delegation with real Redis
+//   - Redirect responses (HTTP 302) for successful lookups
+//
+// Test coverage includes:
+//   - Verifying successful URL retrieval and redirect after shortening
+//   - Validating error response for non-existent code
+func TestGetUrlEndpoint(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name           string
+		code           string                                                             // Code to request
+		setupRedis     func(redis *redis.Client)                                          // Optional: pre-populate Redis
+		setupTestHTTP  func(apiEngine api.Engine, code string) *httptest.ResponseRecorder // Setup and execute request
+		expectedStatus int
+		validateBody   func(t *testing.T, rec *httptest.ResponseRecorder)
+	}{
+		{
+			name: "success - redirects to original URL",
+			code: "preload1",
+			setupRedis: func(r *redis.Client) {
+				// Pre-populate Redis with a code-URL mapping
+				r.Set(context.Background(), "preload1", "https://preloaded-url.com", 0)
+			},
+			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
+				req := httptest.NewRequest(http.MethodGet, "/v1/links/"+code, nil)
+				rec := httptest.NewRecorder()
+				apiEngine.ServeHTTP(rec, req)
+				return rec
+			},
+			expectedStatus: http.StatusFound,
+			validateBody: func(t *testing.T, rec *httptest.ResponseRecorder) {
+				assert.Equal(t, "https://preloaded-url.com", rec.Header().Get("Location"))
+			},
+		},
+		{
+			name:       "bad request - code not found",
+			code:       "notexist",
+			setupRedis: nil, // No pre-population needed
+			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
+				req := httptest.NewRequest(http.MethodGet, "/v1/links/"+code, nil)
+				rec := httptest.NewRecorder()
+				apiEngine.ServeHTTP(rec, req)
+				return rec
+			},
+			expectedStatus: http.StatusBadRequest,
+			validateBody: func(t *testing.T, rec *httptest.ResponseRecorder) {
+				var resp map[string]any
+				err := json.Unmarshal(rec.Body.Bytes(), &resp)
+				assert.NoError(t, err)
+				assert.Equal(t, "url not found", resp["message"])
+			},
+		},
+		{
+			name: "internal server error - redis connection failure",
+			code: "anycode1",
+			setupRedis: func(r *redis.Client) {
+				// Close the Redis connection to simulate a connection failure
+				r.Close()
+			},
+			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
+				req := httptest.NewRequest(http.MethodGet, "/v1/links/"+code, nil)
+				rec := httptest.NewRecorder()
+				apiEngine.ServeHTTP(rec, req)
+				return rec
+			},
+			expectedStatus: http.StatusInternalServerError,
+			validateBody: func(t *testing.T, rec *httptest.ResponseRecorder) {
+				var resp map[string]any
+				err := json.Unmarshal(rec.Body.Bytes(), &resp)
+				assert.NoError(t, err)
+				assert.Equal(t, "internal server error", resp["message"])
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Setup mock Redis
+			mockRedis := redisPkg.InitMockRedis(t)
+
+			// Pre-populate Redis if needed
+			if tc.setupRedis != nil {
+				tc.setupRedis(mockRedis)
+			}
+
+			// Create API engine
+			apiEngine := api.New(&api.Config{}, mockRedis, stringutils.NewKeyGenerator())
+
+			// Execute request
+			rec := tc.setupTestHTTP(apiEngine, tc.code)
+
+			// Assert status
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+
+			// Validate response
+			if tc.validateBody != nil {
+				tc.validateBody(t, rec)
 			}
 		})
 	}

@@ -221,3 +221,69 @@ func TestUrlStorage_StoreUrlIfNotExists(t *testing.T) {
 		})
 	}
 }
+
+// TestUrlStorage_GetUrl validates the GetUrl method of the UrlStorage interface.
+// It tests URL retrieval scenarios including success, not found, and connection errors.
+func TestUrlStorage_GetUrl(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string               // Test case name
+		setupMock   func() *redis.Client // Factory function for mock Redis client
+		code        string               // Code to lookup
+		expectedUrl string               // Expected URL result
+		expectedErr error                // Expected error (nil for success)
+	}{
+		{
+			name: "success - code exists",
+			setupMock: func() *redis.Client {
+				mock := redisPkg.InitMockRedis(t)
+				// Pre-populate the mock Redis with a code-URL mapping
+				mock.Set(context.Background(), "abc1234", "https://example.com", 0)
+				return mock
+			},
+			code:        "abc1234",
+			expectedUrl: "https://example.com",
+			expectedErr: nil,
+		},
+		{
+			name: "code not found - returns redis.Nil",
+			setupMock: func() *redis.Client {
+				// Empty Redis - no keys stored
+				return redisPkg.InitMockRedis(t)
+			},
+			code:        "nonexistent",
+			expectedUrl: "",
+			expectedErr: redis.Nil,
+		},
+		{
+			name: "redis connection error",
+			setupMock: func() *redis.Client {
+				mock := redisPkg.InitMockRedis(t)
+				_ = mock.Close()
+				return mock
+			},
+			code:        "anycode",
+			expectedUrl: "",
+			expectedErr: redis.ErrClosed,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+
+			// Setup
+			redisMock := tc.setupMock()
+			urlRepo := NewUrlStorage(redisMock)
+
+			// Execute
+			url, err := urlRepo.GetUrl(ctx, tc.code)
+
+			// Assert
+			assert.Equal(t, tc.expectedErr, err)
+			assert.Equal(t, tc.expectedUrl, url)
+		})
+	}
+}

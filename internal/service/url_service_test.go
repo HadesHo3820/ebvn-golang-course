@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/repository/mocks"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -154,6 +155,78 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 			// Assert
 			assert.Equal(t, tc.expectCode, code)
 			assert.Equal(t, err, tc.expectedErr)
+		})
+	}
+}
+
+// TestShortenUrl_GetUrl validates the GetUrl method of the ShortenUrl service.
+// It uses table-driven tests to cover various scenarios including success,
+// code not found, and repository errors.
+func TestShortenUrl_GetUrl(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		setupMockRepo func(ctx context.Context, code string) *mocks.UrlStorage
+		code          string // code to lookup
+		expectedUrl   string // expected URL to be returned
+		expectedErr   error  // expected error (nil for no error)
+	}{
+		{
+			name: "success - returns URL from repository",
+			setupMockRepo: func(ctx context.Context, code string) *mocks.UrlStorage {
+				mockRepo := mocks.NewUrlStorage(t)
+				mockRepo.On("GetUrl", ctx, code).
+					Return("https://example.com", nil).Once()
+				return mockRepo
+			},
+			code:        "abc1234",
+			expectedUrl: "https://example.com",
+			expectedErr: nil,
+		},
+		{
+			name: "code not found - returns ErrCodeNotFound",
+			setupMockRepo: func(ctx context.Context, code string) *mocks.UrlStorage {
+				mockRepo := mocks.NewUrlStorage(t)
+				// Repository returns redis.Nil when key doesn't exist
+				mockRepo.On("GetUrl", ctx, code).
+					Return("", redis.Nil).Once()
+				return mockRepo
+			},
+			code:        "nonexistent",
+			expectedUrl: "",
+			expectedErr: ErrCodeNotFound,
+		},
+		{
+			name: "repository error - propagates error",
+			setupMockRepo: func(ctx context.Context, code string) *mocks.UrlStorage {
+				mockRepo := mocks.NewUrlStorage(t)
+				mockRepo.On("GetUrl", ctx, code).
+					Return("", testErr).Once()
+				return mockRepo
+			},
+			code:        "abc1234",
+			expectedUrl: "",
+			expectedErr: testErr,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+
+			// Setup - GetUrl doesn't need KeyGenerator, so we pass nil
+			mockRepo := tc.setupMockRepo(ctx, tc.code)
+			mockKeyGen := mockKeyGen.NewKeyGenerator(t)
+			service := NewShortenUrl(mockRepo, mockKeyGen)
+
+			// Execute
+			url, err := service.GetUrl(ctx, tc.code)
+
+			// Assert
+			assert.Equal(t, tc.expectedUrl, url)
+			assert.Equal(t, tc.expectedErr, err)
 		})
 	}
 }
