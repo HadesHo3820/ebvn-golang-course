@@ -5,10 +5,12 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/repository"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
+	"github.com/redis/go-redis/v9"
 )
 
 // urlCodeLength defines the length of the generated short code for URLs.
@@ -27,6 +29,10 @@ type ShortenUrl interface {
 	// ShortenUrl generates a unique short code for the given URL
 	// and stores the mapping in the repository.
 	ShortenUrl(ctx context.Context, url string, exp int) (string, error)
+
+	// GetUrl retrieves the original URL associated with the given short code.
+	// Returns ErrCodeNotFound if the code does not exist in the repository.
+	GetUrl(ctx context.Context, code string) (string, error)
 }
 
 // shortenUrl is the concrete implementation of the ShortenUrl interface.
@@ -77,4 +83,26 @@ func (s *shortenUrl) ShortenUrl(ctx context.Context, url string, exp int) (strin
 	}
 
 	return "", fmt.Errorf("failed to generate unique code after %d attempts", maxRetries)
+}
+
+// ErrCodeNotFound is a sentinel error returned when a short code
+// does not exist in the repository. Callers should use errors.Is()
+// to check for this specific error condition.
+var ErrCodeNotFound = errors.New("code not found")
+
+// GetUrl retrieves the original URL for a given short code.
+// It queries the repository and translates redis.Nil errors to ErrCodeNotFound
+// for a cleaner abstraction that doesn't leak storage implementation details.
+//
+// Returns:
+//   - The original URL if the code exists.
+//   - ErrCodeNotFound if the code does not exist.
+//   - Other errors for repository/connection failures.
+func (s *shortenUrl) GetUrl(ctx context.Context, code string) (string, error) {
+	url, err := s.repo.GetUrl(ctx, code)
+	// redis.Nil is returned when the key does not exist
+	if errors.Is(err, redis.Nil) {
+		return "", ErrCodeNotFound
+	}
+	return url, err
 }

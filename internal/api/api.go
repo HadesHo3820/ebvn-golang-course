@@ -110,6 +110,9 @@ func (a *api) RegisterEP() {
 
 		// POST /v1/links/shorten - Creates a shortened URL code for the provided URL
 		v1Routes.POST("/links/shorten", urlShortenHandler.ShortenUrl)
+
+		// GET /v1/links/{code} - Redirects to the original URL for the provided short code
+		v1Routes.GET("/links/:code", urlShortenHandler.GetUrl)
 	}
 
 	// Register Swagger documentation endpoint
