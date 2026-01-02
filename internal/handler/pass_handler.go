@@ -5,6 +5,7 @@ import (
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // passwordHandler is the HTTP adapter for password-related operations.
@@ -42,6 +43,7 @@ func NewPassword(svc service.Password) Password {
 func (h *passwordHandler) GenPass(c *gin.Context) {
 	pass, err := h.svc.GeneratePassword()
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate password")
 		c.String(http.StatusInternalServerError, "err")
 		return
 	}
