@@ -1,0 +1,80 @@
+# ==============================================================================
+# Docker Compose Configuration for Bookmark Service
+# ==============================================================================
+# This file defines a multi-container application using Docker Compose.
+# 
+# WHAT IS DOCKER COMPOSE?
+# Docker Compose is a tool for defining and running multi-container applications.
+# Instead of running multiple `docker run` commands manually, you define all
+# services, networks, and volumes in this single YAML file.
+#
+# EQUIVALENT MANUAL COMMANDS (without Docker Compose):
+#   docker network create my-network
+#   docker volume create redis_data
+#   docker run -d --name redis_cache --network my-network -v redis_data:/data redis:alpine
+#   docker run -d --name bookmark_service --network my-network -p 8080:8080 \
+#       -e REDIS_ADDR=redis_cache:6379 bookmark_service:dev
+#
+# WITH DOCKER COMPOSE:
+#   docker compose up -d     # Start all services
+#   docker compose down      # Stop and remove all services
+# ==============================================================================
+
+version: '3.8'  # Version of docker-compose syntax
+
+services:       # Define all containers (services) that make up the application
+
+  # --- Service 1: Redis Database ---
+  redis_db:
+    image: redis:alpine                    # Official Redis image (Alpine = smaller size ~5MB)
+    
+    container_name: redis_cache            # Custom container name (default: <project>_<service>_1)
+    
+    
+    volumes:                               # Named volume: Persists Redis data across container restarts
+      - redis_data:/data                   # Maps container's /data directory to 'redis_data' volume
+
+    networks:                              # Attach to custom bridge network for inter-service communication
+      - my-network                         # (Optional) Only if you define the custom network, you need to specify the custom network here
+
+  # --- Service 2: Bookmark Backend Application (Go API Server) ---
+  bookmark_service:
+    container_name: bookmark_service
+    image: bookmark_service:dev            # Tag for the built image (if omitted: <project>_<service>)
+    
+    build: .                               # Build context: current directory (uses ./Dockerfile)
+                                           # Docker Compose will build only if image doesn't exist
+                                           # use `docker compose build` or `docker compose up --build` to force rebuild
+    ports:
+      - "8080:8080"                        # Port mapping: HOST_PORT:CONTAINER_PORT      
+    environment: 
+      - REDIS_ADDR=redis_db:6379           # Environment variable passed to container
+                                           # 'redis_db' is the DNS name (service name) that Docker resolves
+                                           # to the Redis container's IP within the network
+    depends_on:          
+      - redis_db                           # Start order: redis_db starts BEFORE bookmark_service
+                                           # This only waits for container start, NOT for Redis
+    networks:
+      - my-network
+
+
+# =============================================================================
+# Networks Configuration
+# =============================================================================
+# By default, Docker Compose creates a bridge network named <project>_default.
+# Defining a custom network provides:
+#   - Custom naming for clarity
+#   - Isolation from other Docker Compose projects
+#   - DNS-based service discovery (containers can reference each other by service name)
+networks:
+  my-network:
+    driver: bridge
+    name: bookmark_service_network
+
+# =============================================================================
+# Volumes Configuration
+# =============================================================================
+# Named volumes persist data outside containers, surviving container removal.
+# Data location: /var/lib/docker/volumes/<volume_name>/_data (on Docker host)
+volumes:
+  redis_data:

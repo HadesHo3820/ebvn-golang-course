@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/HadesHo3820/ebvn-golang-course/docs"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/repository"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
@@ -111,10 +112,22 @@ func (a *api) RegisterEP() {
 		// POST /v1/links/shorten - Creates a shortened URL code for the provided URL
 		v1Routes.POST("/links/shorten", urlShortenHandler.ShortenUrl)
 
-		// GET /v1/links/{code} - Redirects to the original URL for the provided short code
-		v1Routes.GET("/links/:code", urlShortenHandler.GetUrl)
+		// GET /v1/links/redirect/{code} - Redirects to the original URL for the provided short code
+		v1Routes.GET("/links/redirect/:code", urlShortenHandler.GetUrl)
 	}
 
 	// Register Swagger documentation endpoint
 	a.app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Configure Swagger host dynamically at runtime.
+	// This overrides the @host annotation defined in the main.go swagger comments.
+	// Why this is needed:
+	//   - When running behind a reverse proxy (e.g., NGINX), the API is accessed
+	//     via a different hostname/path (e.g., "localhost/api/bookmark_service")
+	//   - The default @host value may not match the actual deployment URL
+	//   - Setting this dynamically allows the Swagger UI "Try it out" feature
+	//     to send requests to the correct endpoint based on environment config
+	// Example: APP_HOSTNAME=localhost/api/bookmark_service makes Swagger send
+	//          requests to http://localhost/api/bookmark_service/v1/health-check
+	docs.SwaggerInfo.Host = a.cfg.AppHostName
 }

@@ -9,6 +9,7 @@ type Config struct {
 	AppPort     string `default:"8080" envconfig:"APP_PORT"`
 	ServiceName string `default:"bookmark-api" envconfig:"SERVICE_NAME"`
 	InstanceID  string `default:"" envconfig:"INSTANCE_ID"`
+	AppHostName string `default:"localhost:8080" envconfig:"APP_HOSTNAME"`
 }
 
 func NewConfig() (*Config, error) {

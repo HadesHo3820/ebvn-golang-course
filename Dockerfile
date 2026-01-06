@@ -59,3 +59,6 @@ COPY --from=build /opt/app/docs ./docs
 # Define the default command to run when the container starts.
 # This executes the compiled Go binary.
 CMD ["/app/bookmark_service"]
+
+# [Intermediate] To build the image without using docker-compose, run the command:
+# docker build -t bookmark_service:dev .
