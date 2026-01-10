@@ -213,6 +213,29 @@ COPY --from=test-exec ${_outputdir}/coverage.html /
 # =============================================================================
 FROM alpine AS final
 
+# -----------------------------------------------------------------------------
+# SECURITY: Run as Non-Root User
+# -----------------------------------------------------------------------------
+# Create a dedicated user and group for running the application.
+# This is a security best practice that follows the principle of least privilege.
+#
+# Why run as non-root?
+#   - Limits damage if the application is compromised
+#   - Prevents accidental modification of system files
+#   - Required by many container orchestrators (OpenShift, some K8s policies)
+#   - Reduces attack surface significantly
+#
+# Flags explained:
+#   -S: Create a system user/group (no home dir, no password)
+#   -G appgroup: Add user to the specified group
+#
+# After this, all subsequent commands (COPY, RUN, CMD) will run as 'appuser'
+# -----------------------------------------------------------------------------
+RUN addgroup -S appgroup \
+    && adduser -S appuser -G appgroup
+
+USER appuser
+
 # Build argument for application name (unused in current config, but available
 # for future customization like naming log files or process names).
 ARG app_name=app
