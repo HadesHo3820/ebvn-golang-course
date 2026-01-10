@@ -141,6 +141,8 @@ func TestUrlShortenEndpoint(t *testing.T) {
 func TestGetUrlEndpoint(t *testing.T) {
 	t.Parallel()
 
+	redirectURI := "/v1/links/redirect/"
+
 	testCases := []struct {
 		name           string
 		code           string                                                             // Code to request
@@ -157,7 +159,7 @@ func TestGetUrlEndpoint(t *testing.T) {
 				r.Set(context.Background(), "preload1", "https://preloaded-url.com", 0)
 			},
 			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/v1/links/redirect/"+code, nil)
+				req := httptest.NewRequest(http.MethodGet, redirectURI+code, nil)
 				rec := httptest.NewRecorder()
 				apiEngine.ServeHTTP(rec, req)
 				return rec
@@ -172,7 +174,7 @@ func TestGetUrlEndpoint(t *testing.T) {
 			code:       "notexist",
 			setupRedis: nil, // No pre-population needed
 			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/v1/links/redirect/"+code, nil)
+				req := httptest.NewRequest(http.MethodGet, redirectURI+code, nil)
 				rec := httptest.NewRecorder()
 				apiEngine.ServeHTTP(rec, req)
 				return rec
@@ -193,7 +195,7 @@ func TestGetUrlEndpoint(t *testing.T) {
 				r.Close()
 			},
 			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/v1/links/redirect/"+code, nil)
+				req := httptest.NewRequest(http.MethodGet, redirectURI+code, nil)
 				rec := httptest.NewRecorder()
 				apiEngine.ServeHTTP(rec, req)
 				return rec
