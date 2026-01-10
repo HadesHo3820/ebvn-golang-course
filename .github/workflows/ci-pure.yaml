@@ -1,0 +1,104 @@
+# =============================================================================
+# CI Pipeline Pure (Makefile-based)
+# =============================================================================
+# This GitHub Actions workflow provides an alternative CI approach using
+# Makefile targets instead of native GitHub Actions for Docker operations.
+#
+# Key Differences from ci-native.yaml:
+#   - Uses `make docker-*` commands instead of docker/* GitHub Actions
+#   - More portable: Same Makefile commands work locally and in CI
+#
+# This approach is useful when you want consistent behavior between local
+# development and CI, or when you need custom Docker build logic.
+# =============================================================================
+
+name: ci-pipeline-pure
+
+# =============================================================================
+# Trigger Events
+# =============================================================================
+# This workflow is triggered by the following events:
+#   - Pull requests targeting the "main" branch (for code review validation)
+#   - Pushes to the "main" branch (for continuous deployment)
+#   - Pushes of semantic version tags (e.g., v1.0.0, v2.1.3) for releases
+# =============================================================================
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches:
+      - main
+    tags:
+      # Matches semantic versioning tags like v1.0.0, v2.1.3, etc.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  # ===========================================================================
+  # CI Pure Pipeline Job
+  # ===========================================================================
+  # This job uses Makefile targets for all Docker operations, providing:
+  #   - Consistent commands between local dev and CI
+  #   - Encapsulated build logic in the Makefile
+  #   - Easier debugging (run same commands locally)
+  #
+  # Steps:
+  #   1. Checkout the repository code
+  #   2. Run tests inside Docker (make docker-test)
+  #   3. Build the Docker image (make docker-build)
+  #   4. Log in to Docker Hub (make docker-login) - non-PR only
+  #   5. Push the Docker image (make docker-release) - non-PR only
+  # ===========================================================================
+  ci_pure_pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      # -----------------------------------------------------------------------
+      # Step 1: Checkout Repository
+      # -----------------------------------------------------------------------
+      # Clones the repository code into the runner's workspace
+      # -----------------------------------------------------------------------
+      - uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Step 2: Run Tests in Docker
+      # -----------------------------------------------------------------------
+      # Executes tests inside a Docker container using Makefile target
+      # This ensures tests run in an environment identical to production
+      # -----------------------------------------------------------------------
+      - name: Run test
+        run: make docker-test
+      
+      # -----------------------------------------------------------------------
+      # Step 3: Build Docker Image
+      # -----------------------------------------------------------------------
+      # Builds the Docker image using Makefile target
+      # The Makefile defines the image name, tags, and build arguments
+      # -----------------------------------------------------------------------
+      - name: Build docker image
+        run: make docker-build
+    
+      # -----------------------------------------------------------------------
+      # Step 4: Docker Hub Authentication
+      # -----------------------------------------------------------------------
+      # Logs into Docker Hub using Makefile target
+      # SKIPPED for pull requests (we only push images for main/tags)
+      # Credentials are passed via environment variables to the Makefile
+      # -----------------------------------------------------------------------
+      - name: Log in to Docker Hub
+        if: ${{ github.event_name != 'pull_request' }}
+        run: make docker-login
+        env:
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+    
+      # -----------------------------------------------------------------------
+      # Step 5: Push Docker Image
+      # -----------------------------------------------------------------------
+      # Pushes the built Docker image to Docker Hub using Makefile target
+      # SKIPPED for pull requests (build-only validation for PRs)
+      # The Makefile handles tagging strategy (dev, version tags, etc.)
+      # -----------------------------------------------------------------------
+      - name: Push docker image
+        if: ${{ github.event_name != 'pull_request' }}
+        run: make docker-release
+        
+
