@@ -75,6 +75,8 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Build docker image
         run: make docker-build
+        env:
+          IMG_TAG: dev
     
       # -----------------------------------------------------------------------
       # Step 4: Docker Hub Authentication
