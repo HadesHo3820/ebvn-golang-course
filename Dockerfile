@@ -230,22 +230,29 @@ FROM alpine:3.23 AS final
 # Flags explained:
 #   -S: Create a system user/group (no home dir, no password)
 #   -G appgroup: Add user to the specified group
-#
-# After this, all subsequent commands (COPY, RUN, CMD) will run as 'appuser'
 # -----------------------------------------------------------------------------
 RUN addgroup -S appgroup \
     && adduser -S appuser -G appgroup
-
-USER appuser
-
-# Build argument for application name (unused in current config, but available
-# for future customization like naming log files or process names).
-ARG app_name=app
 
 # Set timezone environment variable.
 # This affects time formatting in application logs and any time-sensitive logic.
 # Asia/Ho_Chi_Minh = UTC+7 (Vietnam timezone)
 ENV TZ=Asia/Ho_Chi_Minh
+
+# Configure the container's timezone.
+# This creates a symlink from /etc/localtime to the appropriate timezone file
+# and writes the timezone name to /etc/timezone.
+# This ensures consistent timestamp formatting across the application.
+# NOTE: This must run as root (before USER appuser)
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Switch to non-root user for security.
+# All subsequent commands (COPY, RUN, CMD) will run as 'appuser'
+USER appuser
+
+# Build argument for application name (unused in current config, but available
+# for future customization like naming log files or process names).
+ARG app_name=app
 
 # Set working directory for the production container.
 # The application will run from this directory.
@@ -259,12 +266,6 @@ COPY --from=build /opt/app/bookmark_service /app/bookmark_service
 # Copy the Swagger/OpenAPI documentation files.
 # These are required for the /swagger endpoint to serve API documentation.
 COPY --from=build /opt/app/docs /app/docs
-
-# Configure the container's timezone.
-# This creates a symlink from /etc/localtime to the appropriate timezone file
-# and writes the timezone name to /etc/timezone.
-# This ensures consistent timestamp formatting across the application.
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Define the default command to run when the container starts.
 # This executes the compiled Go binary.
