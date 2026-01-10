@@ -211,7 +211,9 @@ COPY --from=test-exec ${_outputdir}/coverage.html /
 # - Attack surface (fewer potential vulnerabilities)
 # - Memory footprint
 # =============================================================================
-FROM alpine AS final
+# Use a specific version of Alpine for reproducibility and security.
+# Using 'latest' is discouraged as it can introduce breaking changes unexpectedly.
+FROM alpine:3.23 AS final
 
 # -----------------------------------------------------------------------------
 # SECURITY: Run as Non-Root User
