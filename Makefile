@@ -33,12 +33,12 @@ IMG_NAME=johnnyho3820/ebvn-bookmark-repo
 #
 # Priority order (highest to lowest):
 #   1. Git tag (e.g., v1.0.0) → Uses the exact tag as image tag
-#   2. main branch           → Tags image as "dev"
+#   2. master branch           → Tags image as "dev"
 #   3. Other branches        → IMG_TAG may be empty (handle in CI)
 #
 # Examples:
 #   - On tag v1.2.3:        IMG_TAG=v1.2.3
-#   - On main branch:       IMG_TAG=dev
+#   - On master branch:       IMG_TAG=dev
 #   - On feature/xyz:       IMG_TAG=(empty, may need handling)
 # -----------------------------------------------------------------------------
 
@@ -49,9 +49,9 @@ GIT_TAG := $(shell git describe --tags --exact-match 2>/dev/null)
 # Get the current Git branch name
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
-# Default: If on main branch, use "dev" as the image tag
+# Default: If on master branch, use "dev" as the image tag
 # This enables continuous deployment to a dev/staging environment
-ifeq ($(BRANCH),main)
+ifeq ($(BRANCH),master)
 	IMG_TAG := dev
 endif
 
@@ -232,7 +232,7 @@ docker-test:
 #
 # Image naming: $(IMG_NAME):$(IMG_TAG)
 # Examples:
-#   - On main branch:  johnnyho3820/ebvn-bookmark-repo:dev
+#   - On master branch:  johnnyho3820/ebvn-bookmark-repo:dev
 #   - On tag v1.0.0:   johnnyho3820/ebvn-bookmark-repo:v1.0.0
 #
 # Usage: make docker-build
