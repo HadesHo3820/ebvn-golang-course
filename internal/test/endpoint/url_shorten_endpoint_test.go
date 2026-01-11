@@ -127,10 +127,10 @@ func TestUrlShortenEndpoint(t *testing.T) {
 	}
 }
 
-// TestGetUrlEndpoint validates the /links/:code endpoint through the full HTTP stack.
+// TestGetUrlEndpoint validates the /links/redirect/:code endpoint through the full HTTP stack.
 //
 // This is an integration test that exercises:
-//   - HTTP routing configuration for GET /v1/links/:code
+//   - HTTP routing configuration for GET /v1/links/redirect/:code
 //   - Request handling through the Gin engine
 //   - Handler-to-service-to-repository delegation with real Redis
 //   - Redirect responses (HTTP 302) for successful lookups
@@ -140,6 +140,8 @@ func TestUrlShortenEndpoint(t *testing.T) {
 //   - Validating error response for non-existent code
 func TestGetUrlEndpoint(t *testing.T) {
 	t.Parallel()
+
+	redirectURI := "/v1/links/redirect/"
 
 	testCases := []struct {
 		name           string
@@ -157,7 +159,7 @@ func TestGetUrlEndpoint(t *testing.T) {
 				r.Set(context.Background(), "preload1", "https://preloaded-url.com", 0)
 			},
 			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/v1/links/"+code, nil)
+				req := httptest.NewRequest(http.MethodGet, redirectURI+code, nil)
 				rec := httptest.NewRecorder()
 				apiEngine.ServeHTTP(rec, req)
 				return rec
@@ -172,7 +174,7 @@ func TestGetUrlEndpoint(t *testing.T) {
 			code:       "notexist",
 			setupRedis: nil, // No pre-population needed
 			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/v1/links/"+code, nil)
+				req := httptest.NewRequest(http.MethodGet, redirectURI+code, nil)
 				rec := httptest.NewRecorder()
 				apiEngine.ServeHTTP(rec, req)
 				return rec
@@ -193,7 +195,7 @@ func TestGetUrlEndpoint(t *testing.T) {
 				r.Close()
 			},
 			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/v1/links/"+code, nil)
+				req := httptest.NewRequest(http.MethodGet, redirectURI+code, nil)
 				rec := httptest.NewRecorder()
 				apiEngine.ServeHTTP(rec, req)
 				return rec

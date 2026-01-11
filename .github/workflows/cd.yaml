@@ -1,0 +1,146 @@
+# =============================================================================
+# CD Pipeline - Continuous Deployment
+# =============================================================================
+# This workflow automatically deploys the application to production/staging
+# after the CI pipeline completes successfully.
+#
+# TRIGGER MECHANISM:
+# This workflow uses the `workflow_run` event, which means it is triggered
+# by another workflow (ci-pipeline) rather than direct pushes or PRs.
+# This creates a CI → CD chain where deployment only happens after CI passes.
+#
+# DEPLOYMENT TARGET:
+# Uses a self-hosted runner (your own server) for deployment.
+# The runner must be registered with GitHub and have Docker installed.
+#
+# WORKFLOW FLOW:
+#   1. ci-pipeline completes (success or failure)
+#   2. cd-pipeline is triggered
+#   3. Conditional check: Only deploy if (CI successful) AND (push event) AND (NOT master branch)
+#   4. Deploy to self-hosted runner using Docker Compose
+# =============================================================================
+
+name: cd-pipeline
+
+# =============================================================================
+# Trigger Events
+# =============================================================================
+# This workflow is triggered by the `workflow_run` event, which fires when
+# another workflow completes (regardless of success or failure).
+#
+# Key points about workflow_run:
+#   - It runs in the context of the DEFAULT BRANCH (usually master)
+#   - It does NOT have access to the triggering workflow's secrets directly
+#   - We must check the conclusion ourselves in the job's `if` condition
+# =============================================================================
+on:
+    workflow_run:
+        # The name of the CI workflow that triggers this deployment
+        # Must match exactly the `name:` field in ci-native.yaml or ci-pure.yaml
+        workflows: ["ci-pipeline-pure"]
+        # Trigger when the workflow completes (success, failure, or cancelled)
+        types: ["completed"]
+
+jobs:
+    # =========================================================================
+    # CD Pipeline Job
+    # =========================================================================
+    # This job deploys the application to the production/staging environment.
+    #
+    # CONDITIONAL EXECUTION:
+    # The deployment only runs when ALL of these conditions are met:
+    #   1. CI workflow completed successfully (not failed or cancelled)
+    #   2. CI was triggered by a push (not a pull request)
+    #   3. The push was NOT to the master branch
+    #
+    # This means:
+    #   - PRs do NOT trigger deployment (build validation only)
+    #   - Failed CI does NOT trigger deployment
+    #   - Pushes to master do NOT deploy (likely handled separately)
+    #   - Only successful pushes to non-master branches deploy
+    # =========================================================================
+    cd_pipeline:
+        # ---------------------------------------------------------------------------
+        # Conditional Execution
+        # ---------------------------------------------------------------------------
+        # Multi-line condition using YAML folded style (>)
+        # All three conditions must be true for deployment to proceed:
+        #
+        # 1. github.event.workflow_run.conclusion == 'success'
+        #    → CI workflow must have passed all tests and builds
+        #
+        # 2. github.event.workflow_run.event == 'push'
+        #    → Original trigger was a push, not a pull_request
+        #    → This prevents deploying on PR validation builds
+        #
+        # 3. github.event.workflow_run.head_branch != 'master'
+        #    → The pushed branch is NOT master
+        # ---------------------------------------------------------------------------
+        if: >
+            github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.event == 'push' &&
+            github.event.workflow_run.head_branch != 'master'
+
+        # ---------------------------------------------------------------------------
+        # Self-Hosted Runner
+        # ---------------------------------------------------------------------------
+        # Instead of using GitHub's hosted runners (ubuntu-latest), this job runs
+        # on YOUR OWN server that has the GitHub Actions runner installed.
+        #
+        # Benefits of self-hosted runners for deployment:
+        #   - Direct access to production/staging environment
+        #   - No need to SSH or use external deployment tools
+        #   - Faster deployments (no cloud provisioning)
+        #   - Can access private network resources
+        #
+        # Requirements for the self-hosted runner:
+        #   - Docker and Docker Compose installed
+        #   - GitHub Actions runner service running
+        #   - Network access to Docker Hub (for pulling images)
+        #   - The deployment directory must exist (run `pwd` on directory to check): /root/ebvn-deployment-course
+        # ---------------------------------------------------------------------------
+        runs-on: self-hosted
+
+        steps:
+            # -------------------------------------------------------------------
+            # Deploy Step
+            # -------------------------------------------------------------------
+            # Performs a zero-downtime-ish deployment using Docker Compose.
+            #
+            # Working directory: The deployment folder on the self-hosted runner
+            # containing the docker-compose.yaml file.
+            #
+            # Deployment commands breakdown:
+            #
+            # 1. docker rm -f bookmark_service
+            #    → Force remove the existing container (if running)
+            #    → -f: Force removal even if running
+            #    → Ignores errors if container doesn't exist
+            #
+            # 2. docker compose pull bookmark_service
+            #    → Pull the latest image for the bookmark_service from Docker Hub
+            #    → This gets the image pushed by the CI pipeline
+            #
+            # 3. docker compose up -d
+            #    → Start all services defined in docker-compose.yaml
+            #    → -d: Detached mode (run in background)
+            #    → Will use the newly pulled image
+            #
+            # 4. docker system prune -f
+            #    → Clean up unused Docker resources (dangling images, etc.)
+            #    → -f: Force without confirmation prompt
+            #    → Helps prevent disk space issues over time
+            #
+            # NOTE: This is a simple deployment strategy. For production,
+            # consider using more robust approaches like:
+            #   - Blue-green deployments
+            #   - Rolling updates with Docker Swarm/Kubernetes
+            #   - Health checks before switching traffic
+            # -------------------------------------------------------------------
+            - name: Deploy
+              working-directory: /root/ebvn-deployment-course
+              run: |
+                docker rm -f bookmark_service
+                docker compose pull bookmark_service
+                docker compose up -d
+                docker system prune -f
