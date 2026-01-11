@@ -2,3 +2,6 @@
 coverage.html
 coverage.out
 coverage.tmp
+
+# Disabled workflow files
+.github/workflows/*.disabled
