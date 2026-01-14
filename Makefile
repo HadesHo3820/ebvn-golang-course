@@ -290,3 +290,18 @@ DOCKER_HUB_PASSWORD ?=
 # -----------------------------------------------------------------------------
 docker-login:
 	echo "$(DOCKER_HUB_PASSWORD)" | docker login -u "$(DOCKER_HUB_USERNAME)" --password-stdin
+
+# -----------------------------------------------------------------------------
+# composeup-force: Start Docker Compose services with forced rebuild
+# -----------------------------------------------------------------------------
+# Starts all services defined in docker-compose.yml with forced image rebuild.
+#
+# Flags:
+#   --build  Force rebuild of images before starting containers
+#   -d       Run containers in detached mode (background)
+#
+# Usage: make compose-up-force
+# Note: Use this when you've made changes to Dockerfile or need fresh images
+# -----------------------------------------------------------------------------
+composeup-force:
+	docker compose up --build -d
