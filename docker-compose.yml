@@ -30,7 +30,6 @@ services:       # Define all containers (services) that make up the application
     
     container_name: redis_cache            # Custom container name (default: <project>_<service>_1)
     
-    
     volumes:                               # Named volume: Persists Redis data across container restarts
       - redis_data:/data                   # Maps container's /data directory to 'redis_data' volume
 
@@ -57,6 +56,28 @@ services:       # Define all containers (services) that make up the application
     networks:
       - my-network
 
+  # --- Service 3: PostgreSQL Database ---
+  postgres:
+    image: postgres:18-alpine # Official PostgreSQL image (Alpine = smaller size)
+
+    container_name: postgres # Custom container name for easy reference
+
+    ports:
+      - "5432:5432"
+        # Port mapping: HOST_PORT:CONTAINER_PORT
+        # Allows external tools (pgAdmin, DBeaver) to connect
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+        # Named volume: Persists database files
+        # Data survives container restarts and removals
+    environment:
+      # PostgreSQL initialization environment variables
+      - POSTGRES_USER=admin # Superuser username (default: postgres)
+      - POSTGRES_PASSWORD=admin # Superuser password (required for non-trust auth)
+      - POSTGRES_DB=bookmark_db # Database created on first startup
+
+    networks:
+      - my-network # Allows other services to connect via 'postgres:5432'
 
 # =============================================================================
 # Networks Configuration
@@ -78,3 +99,4 @@ networks:
 # Data location: /var/lib/docker/volumes/<volume_name>/_data (on Docker host)
 volumes:
   redis_data:
+  postgres_data:
