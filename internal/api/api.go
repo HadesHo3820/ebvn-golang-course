@@ -16,6 +16,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"gorm.io/gorm"
 )
 
 // Engine defines the interface for the API server.
@@ -34,17 +35,19 @@ type api struct {
 	cfg         *Config
 	redisClient *redis.Client
 	keyGen      stringutils.KeyGenerator
+	db          *gorm.DB
 }
 
 // New creates and initializes a new API server.
 // It sets up the Gin engine and registers all endpoints.
 // Returns an Engine interface to hide the implementation details.
-func New(cfg *Config, redisClient *redis.Client, keyGen stringutils.KeyGenerator) Engine {
+func New(app *gin.Engine, cfg *Config, redisClient *redis.Client, keyGen stringutils.KeyGenerator, db *gorm.DB) Engine {
 	a := &api{
-		app:         gin.New(),
+		app:         app,
 		cfg:         cfg,
 		redisClient: redisClient,
 		keyGen:      keyGen,
+		db:          db,
 	}
 	a.RegisterEP()
 	return a
@@ -97,6 +100,11 @@ func (a *api) RegisterEP() {
 	// Create the URL shorten handler with injected service dependency
 	urlShortenHandler := handler.NewUrlShorten(urlSvc)
 
+	// create user handler
+	userRepo := repository.NewUser(a.db)
+	userSvc := service.NewUser(userRepo)
+	userHandler := handler.NewUser(userSvc)
+
 	// v1Routes creates a route group with "/v1" prefix for API versioning.
 	// All routes registered under this group will be prefixed with "/v1",
 	// allowing for future API versions (e.g., "/v2") without breaking existing clients.
@@ -114,6 +122,9 @@ func (a *api) RegisterEP() {
 
 		// GET /v1/links/redirect/{code} - Redirects to the original URL for the provided short code
 		v1Routes.GET("/links/redirect/:code", urlShortenHandler.GetUrl)
+
+		// POST /v1/users/register - Registers a new user
+		v1Routes.POST("/users/register", userHandler.RegisterUser)
 	}
 
 	// Register Swagger documentation endpoint
