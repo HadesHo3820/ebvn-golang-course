@@ -1,0 +1,64 @@
+package fixture
+
+import (
+	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
+	"gorm.io/gorm"
+)
+
+// UserCommonTestDB is a test fixture that provides a pre-configured database
+// with User model schema and sample user data. It implements the Fixture interface
+// and is commonly used across multiple User-related test cases to ensure
+// consistent test data and reduce boilerplate setup code.
+type UserCommonTestDB struct {
+	db *gorm.DB
+}
+
+// SetupDB stores the provided database connection for use by other fixture methods.
+// This method is called by NewFixture to inject the mock database.
+func (f *UserCommonTestDB) SetupDB(db *gorm.DB) {
+	f.db = db
+}
+
+// Migrate creates the User table schema in the test database.
+// It uses GORM's AutoMigrate to create the table based on the User model definition.
+// Returns an error if the migration fails.
+func (f *UserCommonTestDB) Migrate() error {
+	return f.db.AutoMigrate(&model.User{})
+}
+
+// GenerateData seeds the test database with sample user records.
+// It creates a new database session and inserts predefined test users
+// using batch insertion for efficiency. The sample data includes:
+//   - Johnny Ho (ID: f47ac10b-58cc-4372-a567-0e02b2c3d479)
+//   - Huy Ho (ID: 322ac10b-58cc-4372-a567-0e02b2c3d479)
+//
+// Returns an error if the data insertion fails.
+func (f *UserCommonTestDB) GenerateData() error {
+	db := f.db.Session(&gorm.Session{})
+
+	users := []*model.User{
+		{
+			ID:          "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+			DisplayName: "Johnny Ho",
+			Username:    "johnny.ho",
+			Email:       "johnny.ho@example.com",
+			Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+		},
+		{
+			ID:          "322ac10b-58cc-4372-a567-0e02b2c3d479",
+			DisplayName: "Huy Ho",
+			Username:    "huy.ho",
+			Email:       "huy.ho@example.com",
+			Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+		},
+	}
+
+	return db.CreateInBatches(users, 10).Error
+}
+
+// DB returns the underlying GORM database connection.
+// This method satisfies the Fixture interface and allows test code
+// to access the database for assertions and additional operations.
+func (f *UserCommonTestDB) DB() *gorm.DB {
+	return f.db
+}
