@@ -1,5 +1,29 @@
 basePath: /
 definitions:
+  github_com_HadesHo3820_ebvn-golang-course_internal_model.User:
+    properties:
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      username:
+        type: string
+    type: object
+  github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message:
+    properties:
+      details:
+        description: |-
+          Details contains a list of specific error messages or additional information, if any.
+          If empty, this field is omitted from the JSON response.
+        items:
+          type: string
+        type: array
+      message:
+        description: Message is a brief summary of the response (e.g., "Input error").
+        type: string
+    type: object
   internal_handler.healthCheckResponse:
     properties:
       instance_id:
@@ -10,6 +34,17 @@ definitions:
         type: string
       service_name:
         example: bookmark_service
+        type: string
+    type: object
+  internal_handler.registerInputBody:
+    properties:
+      display_name:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+      username:
         type: string
     type: object
   internal_handler.urlShortenRequest:
@@ -49,7 +84,7 @@ info:
   contact: {}
   description: A simple password generator API built with Go and Gin.
   title: EBVN Bookmark API
-  version: "1.1"
+  version: "1.2"
 paths:
   /v1/gen-pass:
     get:
@@ -149,4 +184,34 @@ paths:
       summary: Shorten URL
       tags:
       - URL
+  /v1/users/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with the provided information
+      parameters:
+      - description: User registration details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.registerInputBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+      summary: Register a new user
+      tags:
+      - User
 swagger: "2.0"

@@ -163,9 +163,88 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v1/users/register": {
+            "post": {
+                "description": "Register a new user with the provided information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "User registration details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.registerInputBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "github_com_HadesHo3820_ebvn-golang-course_internal_model.User": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "description": "Details contains a list of specific error messages or additional information, if any.\nIf empty, this field is omitted from the JSON response.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "description": "Message is a brief summary of the response (e.g., \"Input error\").",
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.healthCheckResponse": {
             "type": "object",
             "properties": {
@@ -180,6 +259,23 @@ const docTemplate = `{
                 "service_name": {
                     "type": "string",
                     "example": "bookmark_service"
+                }
+            }
+        },
+        "internal_handler.registerInputBody": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -224,7 +320,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.1",
+	Version:          "1.2",
 	Host:             "localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{},
