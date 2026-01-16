@@ -15,6 +15,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
 	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
+	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
@@ -112,7 +113,7 @@ func TestUrlShortenEndpoint(t *testing.T) {
 
 			// Since the URL shortening feature doesn't require configuration,
 			// we can pass nil to the api.New function.
-			rec := tc.setupTestHTTP(api.New(&api.Config{}, redisPkg.InitMockRedis(t), stringutils.NewKeyGenerator()))
+			rec := tc.setupTestHTTP(api.New(gin.New(), &api.Config{}, redisPkg.InitMockRedis(t), stringutils.NewKeyGenerator(), nil))
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
 
@@ -223,7 +224,7 @@ func TestGetUrlEndpoint(t *testing.T) {
 			}
 
 			// Create API engine
-			apiEngine := api.New(&api.Config{}, mockRedis, stringutils.NewKeyGenerator())
+			apiEngine := api.New(gin.New(), &api.Config{}, mockRedis, stringutils.NewKeyGenerator(), nil)
 
 			// Execute request
 			rec := tc.setupTestHTTP(apiEngine, tc.code)
