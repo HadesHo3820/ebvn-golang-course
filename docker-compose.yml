@@ -50,9 +50,10 @@ services:       # Define all containers (services) that make up the application
       - REDIS_ADDR=redis_db:6379           # Environment variable passed to container
                                            # 'redis_db' is the DNS name (service name) that Docker resolves
                                            # to the Redis container's IP within the network
-    depends_on:          
+      - DB_HOST=postgres                   # PostgreSQL host: use service name for Docker networking
+    depends_on:
       - redis_db                           # Start order: redis_db starts BEFORE bookmark_service
-                                           # This only waits for container start, NOT for Redis
+      - postgres                           # Start order: postgres starts BEFORE bookmark_service
     networks:
       - my-network
 
