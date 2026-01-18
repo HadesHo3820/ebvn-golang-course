@@ -5,3 +5,7 @@ coverage.tmp
 
 # Disabled workflow files
 .github/workflows/*.disabled
+
+# Private keys (NEVER commit these!)
+private.pem
+*.key
