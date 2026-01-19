@@ -8,4 +8,5 @@ coverage.tmp
 
 # Private keys (NEVER commit these!)
 private.pem
+public.pem
 *.key
