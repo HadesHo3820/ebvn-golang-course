@@ -1,4 +1,4 @@
-package handler
+package password
 
 import (
 	"errors"
@@ -71,7 +71,7 @@ func TestPasswordHandler_GenPass(t *testing.T) {
 			svcMock := tc.setupMockSvc()
 
 			// Create the handler with the mock service
-			handler := NewPassword(svcMock)
+			handler := NewPasswordHandler(svcMock)
 
 			// Call the handler
 			handler.GenPass(gctx)
