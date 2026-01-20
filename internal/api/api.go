@@ -8,9 +8,14 @@ import (
 	"net/http"
 
 	"github.com/HadesHo3820/ebvn-golang-course/docs"
-	"github.com/HadesHo3820/ebvn-golang-course/internal/handler"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/api/middleware"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/healthcheck"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/password"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/url"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/user"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/repository"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/jwtutils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -31,23 +36,37 @@ type Engine interface {
 // api is the concrete implementation of the Engine interface.
 // It wraps a Gin engine and manages the application's HTTP routing.
 type api struct {
-	app         *gin.Engine
-	cfg         *Config
-	redisClient *redis.Client
-	keyGen      stringutils.KeyGenerator
-	db          *gorm.DB
+	app          *gin.Engine
+	cfg          *Config
+	redisClient  *redis.Client
+	db           *gorm.DB
+	keyGen       stringutils.KeyGenerator
+	jwtGen       jwtutils.JWTGenerator
+	jwtValidator jwtutils.JWTValidator
+}
+
+type EngineOpts struct {
+	Engine       *gin.Engine
+	Cfg          *Config
+	RedisClient  *redis.Client
+	SqlDB        *gorm.DB
+	KeyGen       stringutils.KeyGenerator
+	JwtGen       jwtutils.JWTGenerator
+	JwtValidator jwtutils.JWTValidator
 }
 
 // New creates and initializes a new API server.
 // It sets up the Gin engine and registers all endpoints.
 // Returns an Engine interface to hide the implementation details.
-func New(app *gin.Engine, cfg *Config, redisClient *redis.Client, keyGen stringutils.KeyGenerator, db *gorm.DB) Engine {
+func New(opts *EngineOpts) Engine {
 	a := &api{
-		app:         app,
-		cfg:         cfg,
-		redisClient: redisClient,
-		keyGen:      keyGen,
-		db:          db,
+		app:          opts.Engine,
+		cfg:          opts.Cfg,
+		redisClient:  opts.RedisClient,
+		keyGen:       opts.KeyGen,
+		db:           opts.SqlDB,
+		jwtGen:       opts.JwtGen,
+		jwtValidator: opts.JwtValidator,
 	}
 	a.RegisterEP()
 	return a
@@ -66,6 +85,52 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.app.ServeHTTP(w, r)
 }
 
+// handlers aggregates all HTTP handlers required by the API.
+// It serves as a container for dependency-injected handler instances,
+// making it easier to manage and pass handlers to route registration.
+type handlers struct {
+	healthCheckHandler healthcheck.HealthCheckHandler // Handles health check endpoints
+	passwordHandler    password.PasswordHandler       // Handles password generation endpoints
+	urlShortenHandler  url.UrlHandler                 // Handles URL shortening endpoints
+	userHandler        user.UserHandler               // Handles user management endpoints
+}
+
+// initHandlers initializes all handlers with their required dependencies.
+// It follows the Hexagonal Architecture pattern by:
+//  1. Creating repository instances (infrastructure layer)
+//  2. Creating service instances with injected repositories (domain layer)
+//  3. Creating handler instances with injected services (adapter layer)
+//
+// This method centralizes dependency injection, making it easier to:
+//   - Understand the dependency graph of the application
+//   - Test handlers with mock dependencies
+//   - Add new handlers consistently
+//
+// Returns a handlers struct containing all initialized handler instances.
+func (a *api) initHandlers() *handlers {
+	// Create health check service with Redis connectivity checker
+	healthCheckRepo := repository.NewRedisHealthChecker(a.redisClient)
+	healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID, healthCheckRepo)
+
+	// Create URL shortening service with Redis storage
+	urlRepo := repository.NewUrlStorage(a.redisClient)
+	urlSvc := service.NewShortenUrl(urlRepo, a.keyGen)
+
+	// Create password service (stateless, no repository needed)
+	passSvc := service.NewPassword()
+
+	// Create user service with PostgreSQL repository
+	userRepo := repository.NewUser(a.db)
+	userSvc := service.NewUser(userRepo, a.jwtGen)
+
+	return &handlers{
+		healthCheckHandler: healthcheck.NewHealthCheckHandler(healthSvc),
+		passwordHandler:    password.NewPasswordHandler(passSvc),
+		urlShortenHandler:  url.NewUrlHandler(urlSvc),
+		userHandler:        user.NewUserHandler(userSvc),
+	}
+}
+
 // RegisterEP sets up all API endpoints and their handlers.
 // It performs dependency injection by:
 //  1. Creating service instances (business logic layer)
@@ -78,57 +143,41 @@ func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //   - POST /links/shorten: Shorten a URL
 //   - GET /swagger/*any: Swagger UI documentation
 func (a *api) RegisterEP() {
-	// Initialize the password service (core business logic)
-	passSvc := service.NewPassword()
+	allHandlers := a.initHandlers()
 
-	// Initialize Redis health checker for dependency verification
-	// Use the injected Redis client from the constructor
-	redisHealthChecker := repository.NewRedisHealthChecker(a.redisClient)
+	// GET /health-check - Returns service health status including Redis connectivity
+	a.app.GET("/health-check", allHandlers.healthCheckHandler.Ping)
 
-	healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID, redisHealthChecker)
-
-	// Initialize URL storage repository and service
-	urlRepo := repository.NewUrlStorage(a.redisClient)
-	urlSvc := service.NewShortenUrl(urlRepo, a.keyGen)
-
-	// Create the password handler with injected service dependency
-	passHandler := handler.NewPassword(passSvc)
-
-	// Create the health handler with injected service dependency
-	healthHandler := handler.NewHealthCheck(healthSvc)
-
-	// Create the URL shorten handler with injected service dependency
-	urlShortenHandler := handler.NewUrlShorten(urlSvc)
-
-	// create user handler
-	userRepo := repository.NewUser(a.db)
-	userSvc := service.NewUser(userRepo)
-	userHandler := handler.NewUser(userSvc)
-
-	// v1Routes creates a route group with "/v1" prefix for API versioning.
+	// v1PublicRoutes creates a route group with "/v1" prefix for API versioning.
 	// All routes registered under this group will be prefixed with "/v1",
 	// allowing for future API versions (e.g., "/v2") without breaking existing clients.
 	// The curly braces are purely for visual grouping and have no effect on scope.
-	v1Routes := a.app.Group("/v1")
+	v1PublicRoutes := a.app.Group("/v1")
 	{
 		// GET /v1/gen-pass - Generates a random password
-		v1Routes.GET("/gen-pass", passHandler.GenPass)
-
-		// GET /v1/health-check - Returns service health status including Redis connectivity
-		v1Routes.GET("/health-check", healthHandler.Check)
+		v1PublicRoutes.GET("/gen-pass", allHandlers.passwordHandler.GenPass)
 
 		// POST /v1/links/shorten - Creates a shortened URL code for the provided URL
-		v1Routes.POST("/links/shorten", urlShortenHandler.ShortenUrl)
+		v1PublicRoutes.POST("/links/shorten", allHandlers.urlShortenHandler.ShortenUrl)
 
 		// GET /v1/links/redirect/{code} - Redirects to the original URL for the provided short code
-		v1Routes.GET("/links/redirect/:code", urlShortenHandler.GetUrl)
+		v1PublicRoutes.GET("/links/redirect/:code", allHandlers.urlShortenHandler.GetUrl)
 
 		// POST /v1/users/register - Registers a new user
-		v1Routes.POST("/users/register", userHandler.RegisterUser)
+		v1PublicRoutes.POST("/users/register", allHandlers.userHandler.Register)
+
+		// POST /v1/users/login - Logs in a user and returns a JWT token
+		v1PublicRoutes.POST("/users/login", allHandlers.userHandler.Login)
 	}
 
-	// Register Swagger documentation endpoint
-	a.app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	jwtMiddleware := middleware.NewJWTAuth(a.jwtValidator)
+
+	v1PrivateRoutes := a.app.Group("/v1")
+	v1PrivateRoutes.Use(jwtMiddleware.JWTAuth())
+	{
+		// GET /v1/self/info - Gets the authenticated user's profile information
+		v1PrivateRoutes.GET("/self/info", allHandlers.userHandler.GetSelfInfo)
+	}
 
 	// Configure Swagger host dynamically at runtime.
 	// This overrides the @host annotation defined in the main.go swagger comments.
@@ -141,4 +190,7 @@ func (a *api) RegisterEP() {
 	// Example: APP_HOSTNAME=localhost/api/bookmark_service makes Swagger send
 	//          requests to http://localhost/api/bookmark_service/v1/health-check
 	docs.SwaggerInfo.Host = a.cfg.AppHostName
+
+	// Register Swagger documentation endpoint
+	a.app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
