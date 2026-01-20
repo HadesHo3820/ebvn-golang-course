@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -17,10 +16,6 @@ func NewConfig() (*Config, error) {
 	err := envconfig.Process("", cfg)
 	if err != nil {
 		return nil, err
-	}
-	if cfg.InstanceID == "" {
-		// The most commonly used UUID library for Go is github.com/google/uuid
-		cfg.InstanceID = uuid.New().String()
 	}
 	return cfg, nil
 }
