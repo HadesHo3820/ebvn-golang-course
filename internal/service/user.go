@@ -5,10 +5,18 @@ package service
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/repository"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/jwtutils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/utils"
+	"github.com/golang-jwt/jwt/v5"
+)
+
+const (
+	tokenLast = 24 * time.Hour
 )
 
 // User defines the interface for user-related business operations.
@@ -16,12 +24,16 @@ import (
 type User interface {
 	// CreateUser registers a new user with the provided credentials and profile information.
 	CreateUser(ctx context.Context, username, password, displayName, email string) (*model.User, error)
+	Login(ctx context.Context, username, password string) (string, error)
+	GetUserByID(ctx context.Context, userId string) (*model.User, error)
+	UpdateUser(ctx context.Context, userID, displayName, email string) error
 }
 
 // user is the concrete implementation of the User interface.
 // It coordinates between the repository layer and applies business rules.
 type user struct {
-	repo repository.User
+	repo   repository.User
+	jwtGen jwtutils.JWTGenerator
 }
 
 // NewUser creates and returns a new User service instance.
@@ -32,8 +44,8 @@ type user struct {
 //
 // Returns:
 //   - User: An implementation of the User service interface
-func NewUser(repo repository.User) User {
-	return &user{repo: repo}
+func NewUser(repo repository.User, jwtGen jwtutils.JWTGenerator) User {
+	return &user{repo: repo, jwtGen: jwtGen}
 }
 
 // CreateUser handles user registration by hashing the password and persisting the user.
@@ -59,6 +71,8 @@ func (u *user) CreateUser(ctx context.Context, username, password, displayName, 
 		Password:    hashPwd,
 		DisplayName: displayName,
 		Email:       email,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	res, err := u.repo.CreateUser(ctx, newUser)
@@ -66,4 +80,48 @@ func (u *user) CreateUser(ctx context.Context, username, password, displayName, 
 		return nil, err
 	}
 	return res, nil
+}
+
+var (
+	ErrClientErr      = errors.New("invalid username or password")
+	ErrClientNoUpdate = errors.New("no update")
+)
+
+func (u *user) Login(ctx context.Context, username, password string) (string, error) {
+	// check if user exist
+	chosenUser, err := u.repo.GetUserByUsername(ctx, username)
+	if err != nil {
+		return "", err
+	}
+
+	// check if password is valid
+	check := utils.VerifyPassword(password, chosenUser.Password)
+	if !check {
+		return "", ErrClientErr
+	}
+
+	// create token
+	jwtContent := jwt.MapClaims{
+		"sub": chosenUser.ID,
+		"iat": time.Now().Unix(),
+		"exp": time.Now().Add(tokenLast).Unix(),
+	}
+	token, err := u.jwtGen.GenerateToken(jwtContent)
+	if err != nil {
+		return "", err
+	}
+
+	// return token
+	return token, nil
+}
+
+func (u *user) GetUserByID(ctx context.Context, userId string) (*model.User, error) {
+	return u.repo.GetUserById(ctx, userId)
+}
+
+func (u *user) UpdateUser(ctx context.Context, userID, displayName, email string) error {
+	if displayName == "" && email == "" {
+		return ErrClientNoUpdate
+	}
+	return u.repo.UpdateUser(ctx, userID, displayName, email)
 }
