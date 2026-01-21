@@ -16,7 +16,7 @@ type loginInputBody struct {
 	// Username is the user's login identifier.
 	Username string `json:"username" validate:"required"`
 	// Password is the user's password.
-	Password string `json:"password" validate:"required;gte=8"`
+	Password string `json:"password" validate:"required,gte=8"`
 }
 
 // loginResBody represents the response body containing the JWT token.

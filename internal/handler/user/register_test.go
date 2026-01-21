@@ -1,0 +1,240 @@
+package user
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+)
+
+// TestUserHandler_Register tests the Register handler method.
+// It uses table-driven tests with mocked User service to verify:
+//   - Successful registration returns user data with 200 status
+//   - Duplicate username/email returns 400 status
+//   - Internal server error returns 500 status
+//   - Invalid request body returns 400 status (validation error)
+func TestUserHandler_Register(t *testing.T) {
+	t.Parallel()
+
+	// Disable Gin debug mode for cleaner test output
+	gin.SetMode(gin.TestMode)
+
+	// Fixed timestamp for consistent test assertions
+	fixedTime := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	testCases := []struct {
+		name string
+
+		// Request setup
+		requestBody map[string]string
+
+		// Mock setup - returns the mocked service
+		setupMockSvc func(t *testing.T, ctx context.Context) *mocks.User
+
+		// Expected response
+		expectedStatus int
+		expectedBody   map[string]any
+	}{
+		{
+			name: "success - register user",
+			requestBody: map[string]string{
+				"username":     "testuser",
+				"password":     "Password1!",
+				"display_name": "Test User",
+				"email":        "test@example.com",
+			},
+			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
+				svcMock := mocks.NewUser(t)
+				// mock.Anything for gin.Context since it implements context.Context
+				svcMock.On("CreateUser",
+					ctx,
+					"testuser", "Password1!", "Test User", "test@example.com",
+				).Return(&model.User{
+					ID:          "test-uuid",
+					Username:    "testuser",
+					DisplayName: "Test User",
+					Email:       "test@example.com",
+					UpdatedAt:   fixedTime,
+				}, nil)
+				return svcMock
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]any{
+				"message": "Register an user successfully!",
+				"data": map[string]any{
+					"id":           "test-uuid",
+					"username":     "testuser",
+					"display_name": "Test User",
+					"email":        "test@example.com",
+					"updated_at":   fixedTime.String(),
+				},
+			},
+		},
+		{
+			name: "error - duplicate username or email",
+			requestBody: map[string]string{
+				"username":     "existinguser",
+				"password":     "Password1!",
+				"display_name": "Existing User",
+				"email":        "existing@example.com",
+			},
+			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
+				svcMock := mocks.NewUser(t)
+				svcMock.On("CreateUser",
+					ctx,
+					"existinguser", "Password1!", "Existing User", "existing@example.com",
+				).Return(nil, dbutils.ErrDuplicationType)
+				return svcMock
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody: map[string]any{
+				"message": "username or email is already taken",
+			},
+		},
+		{
+			name: "error - internal server error",
+			requestBody: map[string]string{
+				"username":     "testuser",
+				"password":     "Password1!",
+				"display_name": "Test User",
+				"email":        "test@example.com",
+			},
+			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
+				svcMock := mocks.NewUser(t)
+				svcMock.On("CreateUser",
+					ctx,
+					"testuser", "Password1!", "Test User", "test@example.com",
+				).Return(nil, assert.AnError) // generic error
+				return svcMock
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody: map[string]any{
+				"message": "Processing error",
+			},
+		},
+		{
+			name: "error - missing username",
+			requestBody: map[string]string{
+				"password":     "Password1!",
+				"display_name": "Test User",
+				"email":        "test@example.com",
+			},
+			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
+				// Service should not be called when validation fails
+				return mocks.NewUser(t)
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   nil, // Just check status code for validation errors
+		},
+		{
+			name: "error - invalid email format",
+			requestBody: map[string]string{
+				"username":     "testuser",
+				"password":     "Password1!",
+				"display_name": "Test User",
+				"email":        "invalid-email",
+			},
+			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
+				// Service should not be called when validation fails
+				return mocks.NewUser(t)
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   nil, // Just check status code for validation errors
+		},
+		{
+			name: "error - password too short",
+			requestBody: map[string]string{
+				"username":     "testuser",
+				"password":     "Pass1!",
+				"display_name": "Test User",
+				"email":        "test@example.com",
+			},
+			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
+				// Service should not be called when validation fails
+				return mocks.NewUser(t)
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   nil, // Just check status code for validation errors
+		},
+		{
+			name: "error - username too short",
+			requestBody: map[string]string{
+				"username":     "a",
+				"password":     "Password1!",
+				"display_name": "Test User",
+				"email":        "test@example.com",
+			},
+			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
+				// Service should not be called when validation fails
+				return mocks.NewUser(t)
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   nil, // Just check status code for validation errors
+		},
+		{
+			name: "error - password missing special character",
+			requestBody: map[string]string{
+				"username":     "testuser",
+				"password":     "Password123", // No special character
+				"display_name": "Test User",
+				"email":        "test@example.com",
+			},
+			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
+				// Service should not be called when password validation fails
+				return mocks.NewUser(t)
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   nil, // Just check status code for validation errors
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create a response recorder to capture the response
+			rec := httptest.NewRecorder()
+
+			// Create a Gin test context
+			gctx, _ := gin.CreateTestContext(rec)
+
+			// Create request body as JSON
+			bodyBytes, _ := json.Marshal(tc.requestBody)
+			gctx.Request = httptest.NewRequest(
+				http.MethodPost,
+				"/v1/users/register",
+				bytes.NewReader(bodyBytes),
+			)
+			gctx.Request.Header.Set("Content-Type", "application/json")
+
+			// Setup mock service
+			svcMock := tc.setupMockSvc(t, gctx)
+
+			// Create handler with mock service
+			handler := NewUserHandler(svcMock)
+
+			// Call the handler
+			handler.Register(gctx)
+
+			// Assert status code
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+
+			// Assert response body if expected
+			if tc.expectedBody != nil {
+				var actualBody map[string]any
+				err := json.Unmarshal(rec.Body.Bytes(), &actualBody)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedBody, actualBody)
+			}
+		})
+	}
+}
