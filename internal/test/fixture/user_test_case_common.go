@@ -10,13 +10,7 @@ import (
 // and is commonly used across multiple User-related test cases to ensure
 // consistent test data and reduce boilerplate setup code.
 type UserCommonTestDB struct {
-	db *gorm.DB
-}
-
-// SetupDB stores the provided database connection for use by other fixture methods.
-// This method is called by NewFixture to inject the mock database.
-func (f *UserCommonTestDB) SetupDB(db *gorm.DB) {
-	f.db = db
+	base
 }
 
 // Migrate creates the User table schema in the test database.
@@ -54,11 +48,4 @@ func (f *UserCommonTestDB) GenerateData() error {
 	}
 
 	return db.CreateInBatches(users, 10).Error
-}
-
-// DB returns the underlying GORM database connection.
-// This method satisfies the Fixture interface and allows test code
-// to access the database for assertions and additional operations.
-func (f *UserCommonTestDB) DB() *gorm.DB {
-	return f.db
 }

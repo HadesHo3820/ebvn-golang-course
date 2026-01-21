@@ -35,6 +35,23 @@ type Fixture interface {
 	DB() *gorm.DB
 }
 
+type base struct {
+	db *gorm.DB
+}
+
+// SetupDB stores the provided database connection for use by other fixture methods.
+// This method is called by NewFixture to inject the mock database.
+func (b *base) SetupDB(db *gorm.DB) {
+	b.db = db
+}
+
+// DB returns the underlying GORM database connection.
+// This method satisfies the Fixture interface and allows test code
+// to access the database for assertions and additional operations.
+func (b *base) DB() *gorm.DB {
+	return b.db
+}
+
 // NewFixture creates and initializes a test database using the provided fixture.
 // It performs the following steps:
 //  1. Creates a mock database connection for testing
