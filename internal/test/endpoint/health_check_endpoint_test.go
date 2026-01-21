@@ -50,7 +50,7 @@ func TestHealthCheckEndpoint(t *testing.T) {
 		{
 			name: "healthy - Redis available",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/v1/health-check", nil)
+				req := httptest.NewRequest(http.MethodGet, "/health-check", nil)
 				rec := httptest.NewRecorder()
 				api.ServeHTTP(rec, req)
 				return rec
@@ -64,7 +64,11 @@ func TestHealthCheckEndpoint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			rec := tc.setupTestHTTP(api.New(gin.New(), cfg, redisPkg.InitMockRedis(t), nil, nil))
+			rec := tc.setupTestHTTP(api.New(&api.EngineOpts{
+				Engine:      gin.New(),
+				Cfg:         cfg,
+				RedisClient: redisPkg.InitMockRedis(t),
+			}))
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
 			assert.JSONEq(t, tc.expectedBody, rec.Body.String())

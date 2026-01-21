@@ -5,6 +5,7 @@ import (
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
@@ -19,12 +20,12 @@ func TestUser_CreateUser(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name              string
-		setupDB           func(t *testing.T) *gorm.DB
-		inputUser         *model.User
-		expectedErrString string
-		expectedOutput    *model.User
-		verifyFunc        func(db *gorm.DB, user *model.User)
+		name           string
+		setupDB        func(t *testing.T) *gorm.DB
+		inputUser      *model.User
+		expectedErr    error
+		expectedOutput *model.User
+		verifyFunc     func(db *gorm.DB, user *model.User)
 	}{
 		{
 			name: "normal case",
@@ -64,7 +65,7 @@ func TestUser_CreateUser(t *testing.T) {
 				Email:       "johnny.ho@example.com",
 				Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
 			},
-			expectedErrString: "UNIQUE constraint failed: users.email",
+			expectedErr: dbutils.ErrDuplicationType,
 		},
 	}
 
@@ -82,7 +83,7 @@ func TestUser_CreateUser(t *testing.T) {
 
 			// Assert
 			if err != nil {
-				assert.ErrorContains(t, err, tc.expectedErrString)
+				assert.ErrorIs(t, err, tc.expectedErr)
 			}
 
 			assert.Equal(t, tc.expectedOutput, output)

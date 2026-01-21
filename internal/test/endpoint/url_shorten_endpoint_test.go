@@ -84,7 +84,7 @@ func TestUrlShortenEndpoint(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			validateBody: func(t *testing.T, body map[string]interface{}) {
-				assert.Equal(t, "wrong input", body["message"])
+				assert.Equal(t, "Input error", body["message"])
 			},
 		},
 		{
@@ -102,7 +102,7 @@ func TestUrlShortenEndpoint(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			validateBody: func(t *testing.T, body map[string]interface{}) {
-				assert.Equal(t, "wrong input", body["message"])
+				assert.Equal(t, "Input error", body["message"])
 			},
 		},
 	}
@@ -113,7 +113,12 @@ func TestUrlShortenEndpoint(t *testing.T) {
 
 			// Since the URL shortening feature doesn't require configuration,
 			// we can pass nil to the api.New function.
-			rec := tc.setupTestHTTP(api.New(gin.New(), &api.Config{}, redisPkg.InitMockRedis(t), stringutils.NewKeyGenerator(), nil))
+			rec := tc.setupTestHTTP(api.New(&api.EngineOpts{
+				Engine:      gin.New(),
+				Cfg:         &api.Config{},
+				RedisClient: redisPkg.InitMockRedis(t),
+				KeyGen:      stringutils.NewKeyGenerator(),
+			}))
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
 
@@ -206,7 +211,7 @@ func TestGetUrlEndpoint(t *testing.T) {
 				var resp map[string]any
 				err := json.Unmarshal(rec.Body.Bytes(), &resp)
 				assert.NoError(t, err)
-				assert.Equal(t, "internal server error", resp["message"])
+				assert.Equal(t, "Processing error", resp["message"])
 			},
 		},
 	}
@@ -224,7 +229,11 @@ func TestGetUrlEndpoint(t *testing.T) {
 			}
 
 			// Create API engine
-			apiEngine := api.New(gin.New(), &api.Config{}, mockRedis, stringutils.NewKeyGenerator(), nil)
+			apiEngine := api.New(&api.EngineOpts{
+				Engine:      gin.New(),
+				Cfg:         &api.Config{},
+				RedisClient: mockRedis,
+			})
 
 			// Execute request
 			rec := tc.setupTestHTTP(apiEngine, tc.code)
