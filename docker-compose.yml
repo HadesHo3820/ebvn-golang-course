@@ -58,6 +58,15 @@ services:       # Define all containers (services) that make up the application
         condition: service_healthy # Wait for postgres to be HEALTHY (not just started)
     networks:
       - my-network
+    # volumes: Mounts RSA key pair files for JWT authentication
+    # - public.pem: Used to verify JWT token signatures (shared with other services if needed)
+    # - private.pem: Used to sign JWT tokens during login (keep secure, never expose)
+    # The :Z suffix is an SELinux label that allows the container to access the files
+    # on systems with SELinux enabled (e.g., RHEL, CentOS, Fedora)
+    # Generate these keys using: make generate-rsa-key
+    volumes:
+      - ./public.pem:/app/public.pem:Z
+      - ./private.pem:/app/private.pem:Z
 
   # --- Service 3: PostgreSQL Database ---
   postgres:
