@@ -177,6 +177,9 @@ func (a *api) RegisterEP() {
 	{
 		// GET /v1/self/info - Gets the authenticated user's profile information
 		v1PrivateRoutes.GET("/self/info", allHandlers.userHandler.GetSelfInfo)
+
+		// PUT /v1/self/info - Updates the authenticated user's profile information
+		v1PrivateRoutes.PUT("/self/info", allHandlers.userHandler.UpdateSelfInfo)
 	}
 
 	// Configure Swagger host dynamically at runtime.
