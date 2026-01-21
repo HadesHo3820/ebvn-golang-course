@@ -10,8 +10,19 @@ import (
 )
 
 // TestNewJWTValidator tests the NewJWTValidator constructor function.
+// It uses table-driven tests to cover:
+//   - Valid public key path
+//   - File not found error
+//   - Invalid PEM content
 func TestNewJWTValidator(t *testing.T) {
 	t.Parallel()
+
+	// Create a temporary file with invalid PEM content for testing
+	invalidPEMFile, err := os.CreateTemp("", "invalid_key_*.pem")
+	assert.NoError(t, err)
+	defer os.Remove(invalidPEMFile.Name())
+	_, _ = invalidPEMFile.WriteString("this is not a valid PEM file")
+	invalidPEMFile.Close()
 
 	testCases := []struct {
 		name      string
@@ -20,15 +31,21 @@ func TestNewJWTValidator(t *testing.T) {
 		errMsg    string
 	}{
 		{
-			name:      "valid public key path",
+			name:      "success - valid public key path",
 			keyPath:   filepath.FromSlash("./public.test.pem"),
 			expectErr: false,
 		},
 		{
-			name:      "invalid public key path - file not found",
+			name:      "error - file not found",
 			keyPath:   filepath.FromSlash("./non-existent.pem"),
 			expectErr: true,
 			errMsg:    "no such file or directory",
+		},
+		{
+			name:      "error - invalid PEM content",
+			keyPath:   invalidPEMFile.Name(),
+			expectErr: true,
+			errMsg:    "invalid",
 		},
 	}
 
@@ -49,29 +66,12 @@ func TestNewJWTValidator(t *testing.T) {
 	}
 }
 
-// TestNewJWTValidator_InvalidPEM tests NewJWTValidator with invalid PEM content.
-func TestNewJWTValidator_InvalidPEM(t *testing.T) {
-	t.Parallel()
-
-	// Create a temporary file with invalid PEM content
-	tempFile, err := os.CreateTemp("", "invalid_key_*.pem")
-	assert.NoError(t, err)
-	defer os.Remove(tempFile.Name())
-
-	_, err = tempFile.WriteString("this is not a valid PEM file")
-	assert.NoError(t, err)
-	tempFile.Close()
-
-	validator, err := NewJWTValidator(tempFile.Name())
-	assert.Error(t, err)
-	assert.Nil(t, validator)
-}
-
 // TestJWTValidator_ValidateToken tests the ValidateToken method.
+// It uses table-driven tests to cover various token validation scenarios.
 func TestJWTValidator_ValidateToken(t *testing.T) {
 	t.Parallel()
 
-	// Generate a valid token using the generator
+	// Setup: Generate a valid token using the generator
 	generator, err := NewJWTGenerator(filepath.FromSlash("./private.test.pem"))
 	assert.NoError(t, err)
 
@@ -82,44 +82,51 @@ func TestJWTValidator_ValidateToken(t *testing.T) {
 	validToken, err := generator.GenerateToken(validClaims)
 	assert.NoError(t, err)
 
-	// Create validator with matching public key
+	// Setup: Create validator with matching public key
 	validator, err := NewJWTValidator(filepath.FromSlash("./public.test.pem"))
 	assert.NoError(t, err)
 
 	testCases := []struct {
-		name           string
-		tokenString    string
-		expectErr      bool
-		expectedClaims jwt.MapClaims
+		name         string
+		tokenString  string
+		expectErr    bool
+		verifyClaims func(t *testing.T, claims jwt.MapClaims)
 	}{
 		{
-			name:        "valid token",
+			name:        "success - valid token",
 			tokenString: validToken,
 			expectErr:   false,
-			expectedClaims: jwt.MapClaims{
-				"id":   "1234",
-				"name": "John",
+			verifyClaims: func(t *testing.T, claims jwt.MapClaims) {
+				assert.Equal(t, "1234", claims["id"])
+				assert.Equal(t, "John", claims["name"])
 			},
 		},
 		{
-			name:        "empty token",
+			name:        "error - empty token",
 			tokenString: "",
 			expectErr:   true,
 		},
 		{
-			name:        "malformed token",
+			name:        "error - malformed token (wrong segments)",
 			tokenString: "not.a.valid.jwt.token",
 			expectErr:   true,
 		},
 		{
-			name:        "invalid signature - token signed with different key",
+			name:        "error - invalid signature (signed with different key)",
 			tokenString: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30",
+			expectErr:   true,
+		},
+		{
+			name:        "error - truncated token",
+			tokenString: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpX",
 			expectErr:   true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			claims, err := validator.ValidateToken(tc.tokenString)
 
 			if tc.expectErr {
@@ -131,8 +138,11 @@ func TestJWTValidator_ValidateToken(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.NotNil(t, claims)
-			assert.Equal(t, tc.expectedClaims["id"], claims["id"])
-			assert.Equal(t, tc.expectedClaims["name"], claims["name"])
+
+			// Verify claims if callback provided
+			if tc.verifyClaims != nil {
+				tc.verifyClaims(t, claims)
+			}
 		})
 	}
 }

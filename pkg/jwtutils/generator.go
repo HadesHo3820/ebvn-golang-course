@@ -13,6 +13,8 @@ import (
 // JWTGenerator defines the interface for generating JWT tokens.
 // Implementations of this interface are responsible for creating
 // signed tokens using RSA private keys.
+//
+//go:generate mockery --name JWTGenerator --filename jwt_generator.go
 type JWTGenerator interface {
 	// GenerateToken creates a new JWT token with the provided claims.
 	// It returns the signed token string or an error if signing fails.

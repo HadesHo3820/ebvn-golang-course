@@ -10,8 +10,19 @@ import (
 )
 
 // TestNewJWTGenerator tests the NewJWTGenerator constructor function.
+// It uses table-driven tests to cover:
+//   - Valid private key path
+//   - File not found error
+//   - Invalid PEM content
 func TestNewJWTGenerator(t *testing.T) {
 	t.Parallel()
+
+	// Create a temporary file with invalid PEM content for testing
+	invalidPEMFile, err := os.CreateTemp("", "invalid_key_*.pem")
+	assert.NoError(t, err)
+	defer os.Remove(invalidPEMFile.Name())
+	_, _ = invalidPEMFile.WriteString("this is not a valid PEM file")
+	invalidPEMFile.Close()
 
 	testCases := []struct {
 		name      string
@@ -20,15 +31,21 @@ func TestNewJWTGenerator(t *testing.T) {
 		errMsg    string
 	}{
 		{
-			name:      "valid private key path",
+			name:      "success - valid private key path",
 			keyPath:   filepath.FromSlash("./private.test.pem"),
 			expectErr: false,
 		},
 		{
-			name:      "invalid private key path - file not found",
+			name:      "error - file not found",
 			keyPath:   filepath.FromSlash("./non-existent.pem"),
 			expectErr: true,
 			errMsg:    "no such file or directory",
+		},
+		{
+			name:      "error - invalid PEM content",
+			keyPath:   invalidPEMFile.Name(),
+			expectErr: true,
+			errMsg:    "invalid",
 		},
 	}
 
@@ -49,51 +66,97 @@ func TestNewJWTGenerator(t *testing.T) {
 	}
 }
 
-// TestNewJWTGenerator_InvalidPEM tests NewJWTGenerator with invalid PEM content.
-func TestNewJWTGenerator_InvalidPEM(t *testing.T) {
+// TestJWTGenerator_GenerateToken tests the GenerateToken method.
+// It uses table-driven tests to cover various claim scenarios.
+func TestJWTGenerator_GenerateToken(t *testing.T) {
 	t.Parallel()
 
-	// Create a temporary file with invalid PEM content
-	tempFile, err := os.CreateTemp("", "invalid_key_*.pem")
-	assert.NoError(t, err)
-	defer os.Remove(tempFile.Name())
-
-	_, err = tempFile.WriteString("this is not a valid PEM file")
-	assert.NoError(t, err)
-	tempFile.Close()
-
-	generator, err := NewJWTGenerator(tempFile.Name())
-	assert.Error(t, err)
-	assert.Nil(t, generator)
-}
-
-// TestJWTGenerator_GenerateToken_Integration tests that generated tokens can be validated.
-func TestJWTGenerator_GenerateToken_Integration(t *testing.T) {
-	t.Parallel()
-
-	// Create generator and validator with matching key pair.
-	// filepath.FromSlash converts forward slashes to the OS-specific path separator,
-	// ensuring cross-platform compatibility (e.g., "/" on Unix, "\" on Windows).
+	// Setup generator with valid key
 	generator, err := NewJWTGenerator(filepath.FromSlash("./private.test.pem"))
 	assert.NoError(t, err)
+	assert.NotNil(t, generator)
 
+	// Setup validator for token verification
 	validator, err := NewJWTValidator(filepath.FromSlash("./public.test.pem"))
 	assert.NoError(t, err)
 
-	// Generate a token
-	inputClaims := jwt.MapClaims{
-		"id":   "1234",
-		"name": "John",
+	testCases := []struct {
+		name        string
+		claims      jwt.MapClaims
+		expectErr   bool
+		verifyClaim func(t *testing.T, outputClaims jwt.MapClaims)
+	}{
+		{
+			name: "success - basic claims",
+			claims: jwt.MapClaims{
+				"id":   "1234",
+				"name": "John",
+			},
+			expectErr: false,
+			verifyClaim: func(t *testing.T, outputClaims jwt.MapClaims) {
+				assert.Equal(t, "1234", outputClaims["id"])
+				assert.Equal(t, "John", outputClaims["name"])
+			},
+		},
+		{
+			name: "success - with sub claim",
+			claims: jwt.MapClaims{
+				"sub":   "user-uuid-123",
+				"email": "test@example.com",
+			},
+			expectErr: false,
+			verifyClaim: func(t *testing.T, outputClaims jwt.MapClaims) {
+				assert.Equal(t, "user-uuid-123", outputClaims["sub"])
+				assert.Equal(t, "test@example.com", outputClaims["email"])
+			},
+		},
+		{
+			name: "success - with numeric claims",
+			claims: jwt.MapClaims{
+				"user_id": float64(42),
+				"exp":     float64(9999999999),
+			},
+			expectErr: false,
+			verifyClaim: func(t *testing.T, outputClaims jwt.MapClaims) {
+				assert.Equal(t, float64(42), outputClaims["user_id"])
+				assert.Equal(t, float64(9999999999), outputClaims["exp"])
+			},
+		},
+		{
+			name:      "success - empty claims",
+			claims:    jwt.MapClaims{},
+			expectErr: false,
+			verifyClaim: func(t *testing.T, outputClaims jwt.MapClaims) {
+				assert.NotNil(t, outputClaims)
+			},
+		},
 	}
-	token, err := generator.GenerateToken(inputClaims)
-	assert.NoError(t, err)
 
-	// Validate the token
-	outputClaims, err := validator.ValidateToken(token)
-	assert.NoError(t, err)
-	assert.NotNil(t, outputClaims)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	// Verify the claims match
-	assert.Equal(t, inputClaims["id"], outputClaims["id"])
-	assert.Equal(t, inputClaims["name"], outputClaims["name"])
+			// Generate token
+			token, err := generator.GenerateToken(tc.claims)
+
+			if tc.expectErr {
+				assert.Error(t, err)
+				assert.Empty(t, token)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.NotEmpty(t, token)
+
+			// Validate the generated token
+			outputClaims, err := validator.ValidateToken(token)
+			assert.NoError(t, err)
+			assert.NotNil(t, outputClaims)
+
+			// Verify claims if callback provided
+			if tc.verifyClaim != nil {
+				tc.verifyClaim(t, outputClaims)
+			}
+		})
+	}
 }

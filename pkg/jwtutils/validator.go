@@ -11,6 +11,7 @@ import (
 // JWTValidator defines the interface for validating JWT tokens.
 // Implementations of this interface are responsible for verifying
 // token signatures using RSA public keys and extracting claims.
+//go:generate mockery --name JWTValidator --filename jwt_validator.go
 type JWTValidator interface {
 	// ValidateToken verifies the token signature and returns the claims if valid.
 	// It returns an error if the token is invalid or verification fails.
