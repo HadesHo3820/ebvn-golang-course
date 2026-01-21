@@ -449,12 +449,14 @@
         "internal_handler_user.loginInputBody": {
             "type": "object",
             "required": [
+                "password",
                 "username"
             ],
             "properties": {
                 "password": {
                     "description": "Password is the user's password.",
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 8
                 },
                 "username": {
                     "description": "Username is the user's login identifier.",
@@ -484,22 +486,34 @@
         },
         "internal_handler_user.registerInputBody": {
             "type": "object",
+            "required": [
+                "display_name",
+                "email",
+                "password",
+                "username"
+            ],
             "properties": {
                 "display_name": {
                     "description": "DisplayName is the user's display name shown in the UI.",
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
                 },
                 "email": {
                     "description": "Email is the user's email address.",
                     "type": "string"
                 },
                 "password": {
-                    "description": "Password is the user's plain-text password (will be hashed by service).",
-                    "type": "string"
+                    "description": "Password must contain at least one uppercase, one lowercase, one digit, and one special character.",
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 8
                 },
                 "username": {
                     "description": "Username is the unique login identifier for the user.",
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 2
                 }
             }
         },
@@ -541,6 +555,7 @@
                     "type": "string"
                 },
                 "email": {
+                    "description": "`validate:\"omitempty,email\"` allow empty email (only validates format when a value is provided)",
                     "type": "string"
                 }
             }

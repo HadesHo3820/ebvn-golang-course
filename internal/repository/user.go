@@ -13,6 +13,7 @@ import (
 // User defines the interface for user-related database operations.
 // This interface follows the repository pattern, abstracting data access
 // and enabling easier testing through mock implementations.
+//go:generate mockery --name User --filename user.go
 type User interface {
 	// CreateUser persists a new user record to the database.
 	CreateUser(ctx context.Context, newUser *model.User) (*model.User, error)
@@ -107,7 +108,8 @@ var (
 //   - error: An error if the database operation fails, nil otherwise
 func (u *user) UpdateUser(ctx context.Context, userID, displayName, email string) error {
 	// Build updates map
-	updates := make(map[string]string)
+	// GORM's Updates() only accepts map[string]any
+	updates := make(map[string]any)
 
 	if displayName != "" {
 		updates["display_name"] = displayName
