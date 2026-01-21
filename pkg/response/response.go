@@ -15,7 +15,7 @@ type Message struct {
 	Message string `json:"message"`
 	// Details contains a list of specific error messages or additional information, if any.
 	// If empty, this field is omitted from the JSON response.
-	Details []string `json:"details,omitempty"`
+	Details any `json:"details,omitempty"`
 }
 
 // Common response messages used throughout the application.
