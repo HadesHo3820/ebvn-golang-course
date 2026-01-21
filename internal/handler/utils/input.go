@@ -5,11 +5,35 @@ package utils
 
 import (
 	"net/http"
+	"regexp"
 
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
+
+// Password validation patterns - Go's regexp doesn't support Perl lookahead (?=),
+// so we check each requirement separately.
+var (
+	hasLower   = regexp.MustCompile(`[a-z]`)
+	hasUpper   = regexp.MustCompile(`[A-Z]`)
+	hasDigit   = regexp.MustCompile(`\d`)
+	hasSpecial = regexp.MustCompile(`[@$!%*?&]`)
+)
+
+// validatePassword is a custom validator for password fields.
+// It checks that the password contains:
+//   - At least one lowercase letter
+//   - At least one uppercase letter
+//   - At least one digit
+//   - At least one special character (@$!%*?&)
+func validatePassword(fl validator.FieldLevel) bool {
+	password := fl.Field().String()
+	return hasLower.MatchString(password) &&
+		hasUpper.MatchString(password) &&
+		hasDigit.MatchString(password) &&
+		hasSpecial.MatchString(password)
+}
 
 // BindInputFromRequest is a generic utility function that binds request data from multiple
 // sources into a single struct and validates it. This eliminates boilerplate code in handlers
@@ -23,6 +47,9 @@ import (
 //
 // After binding, it validates the struct using go-playground/validator with the
 // `validate:"rule"` struct tags.
+//
+// Custom validators available:
+//   - password: Validates password contains uppercase, lowercase, digit, and special character
 //
 // Type Parameters:
 //   - T: The type of the input struct to bind to. Must have appropriate struct tags
@@ -43,6 +70,7 @@ import (
 //
 //	type UserInput struct {
 //	    Username string `json:"username" validate:"required,min=3"`
+//	    Password string `json:"password" validate:"required,gte=8,password"`
 //	    UserID   string `uri:"id"`
 //	}
 //
@@ -81,6 +109,9 @@ func BindInputFromRequest[T any](c *gin.Context) (*T, error) {
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
+	// Register custom password validator
+	validate.RegisterValidation("password", validatePassword)
+
 	if err := validate.Struct(reqInput); err != nil {
 		c.JSON(http.StatusBadRequest, response.InputFieldError(err))
 		c.Abort()
