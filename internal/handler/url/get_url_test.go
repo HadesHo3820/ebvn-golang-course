@@ -86,7 +86,7 @@ func TestUrlShortenHandler_GetUrl(t *testing.T) {
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody: map[string]any{
-				"message": "internal server error",
+				"message": "Processing error",
 			},
 		},
 	}

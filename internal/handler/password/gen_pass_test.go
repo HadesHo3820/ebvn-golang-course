@@ -51,7 +51,7 @@ func TestPasswordHandler_GenPass(t *testing.T) {
 				return svcMock
 			},
 			expectedStatus: http.StatusInternalServerError,
-			expectedResp:   "err",
+			expectedResp:   `{"message":"Processing error"}`,
 		},
 	}
 
