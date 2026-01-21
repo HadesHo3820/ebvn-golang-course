@@ -4,7 +4,7 @@
         "description": "A simple password generator API built with Go and Gin.",
         "title": "EBVN Bookmark API",
         "contact": {},
-        "version": "1.2"
+        "version": "1.3"
     },
     "host": "localhost:8080",
     "basePath": "/",
