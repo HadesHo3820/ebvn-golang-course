@@ -15,8 +15,8 @@ import (
 type registerInputBody struct {
 	// Username is the unique login identifier for the user.
 	Username string `json:"username" validate:"required;gte=2;lte=20"`
-	// Password is the user's plain-text password (will be hashed by service).
-	Password string `json:"password" validate:"required;gte=8;lte=20"`
+	// Password must contain at least one uppercase, one lowercase, one digit, and one special character.
+	Password string `json:"password" validate:"required,gte=8,lte=20,regexp=^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$"`
 	// DisplayName is the user's display name shown in the UI.
 	DisplayName string `json:"display_name" validate:"required;gte=2;lte=50"`
 	// Email is the user's email address.
