@@ -15,6 +15,32 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/health-check": {
+            "get": {
+                "description": "Health check",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health_check"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_healthcheck.pingResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable - dependency unhealthy",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_healthcheck.pingErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/gen-pass": {
             "get": {
                 "description": "Generates a cryptographically secure random password",
@@ -33,38 +59,9 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Error message",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/health-check": {
-            "get": {
-                "description": "Health check",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "health_check"
-                ],
-                "summary": "Health check",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.healthCheckResponse"
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable - dependency unhealthy",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
                         }
                     }
                 }
@@ -90,7 +87,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.urlShortenRequest"
+                            "$ref": "#/definitions/internal_handler_url.urlShortenRequest"
                         }
                     }
                 ],
@@ -98,25 +95,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.urlShortenResponse"
+                            "$ref": "#/definitions/internal_handler_url.urlShortenResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request - invalid URL or validation error",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
                         }
                     }
                 }
@@ -155,10 +146,151 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/self/info": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the authenticated user's profile information",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get user profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_user.profileResBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the authenticated user's profile information (display name and/or email)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update user profile",
+                "parameters": [
+                    {
+                        "description": "Update profile request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_user.updateSelfInfoReqBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profile updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    },
+                    "400": {
+                        "description": "No data provided for update",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    },
+                    "404": {
+                        "description": "User does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/login": {
+            "post": {
+                "description": "Authenticate a user with username and password, returns a JWT token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Login a user",
+                "parameters": [
+                    {
+                        "description": "User login credentials",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_user.loginInputBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_user.loginResBody"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid username or password",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
                         }
                     }
                 }
@@ -184,7 +316,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.registerInputBody"
+                            "$ref": "#/definitions/internal_handler_user.registerInputBody"
                         }
                     }
                 ],
@@ -192,7 +324,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.User"
+                            "$ref": "#/definitions/internal_handler_user.registerResBody"
                         }
                     },
                     "400": {
@@ -215,6 +347,9 @@ const docTemplate = `{
         "github_com_HadesHo3820_ebvn-golang-course_internal_model.User": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string"
+                },
                 "display_name": {
                     "type": "string"
                 },
@@ -222,6 +357,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 },
                 "username": {
@@ -233,11 +371,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "details": {
-                    "description": "Details contains a list of specific error messages or additional information, if any.\nIf empty, this field is omitted from the JSON response.",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                    "description": "Details contains a list of specific error messages or additional information, if any.\nIf empty, this field is omitted from the JSON response."
                 },
                 "message": {
                     "description": "Message is a brief summary of the response (e.g., \"Input error\").",
@@ -245,7 +379,27 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.healthCheckResponse": {
+        "internal_handler_healthcheck.pingErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "instance_id": {
+                    "type": "string",
+                    "example": "instance-123"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "OK"
+                },
+                "service_name": {
+                    "type": "string",
+                    "example": "bookmark_service"
+                }
+            }
+        },
+        "internal_handler_healthcheck.pingResponse": {
             "type": "object",
             "properties": {
                 "instance_id": {
@@ -262,24 +416,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.registerInputBody": {
-            "type": "object",
-            "properties": {
-                "display_name": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handler.urlShortenRequest": {
+        "internal_handler_url.urlShortenRequest": {
             "type": "object",
             "required": [
                 "exp",
@@ -300,7 +437,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.urlShortenResponse": {
+        "internal_handler_url.urlShortenResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -314,6 +451,113 @@ const docTemplate = `{
                     "example": "Shorten URL generated successfully!"
                 }
             }
+        },
+        "internal_handler_user.loginInputBody": {
+            "type": "object",
+            "required": [
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "description": "Password is the user's password.",
+                    "type": "string"
+                },
+                "username": {
+                    "description": "Username is the user's login identifier.",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler_user.loginResBody": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Token is the JWT authentication token.",
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler_user.profileResBody": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.User"
+                }
+            }
+        },
+        "internal_handler_user.registerInputBody": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "description": "DisplayName is the user's display name shown in the UI.",
+                    "type": "string"
+                },
+                "email": {
+                    "description": "Email is the user's email address.",
+                    "type": "string"
+                },
+                "password": {
+                    "description": "Password is the user's plain-text password (will be hashed by service).",
+                    "type": "string"
+                },
+                "username": {
+                    "description": "Username is the unique login identifier for the user.",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler_user.registerResBody": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/internal_handler_user.registerUserData"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler_user.registerUserData": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler_user.updateSelfInfoReqBody": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Enter your Bearer token in the format: Bearer {token}",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
