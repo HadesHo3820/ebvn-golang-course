@@ -1,9 +1,15 @@
 package fixture
 
 import (
+	"time"
+
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	"gorm.io/gorm"
 )
+
+// FixtureTimestamp is a common timestamp used across all fixture data
+// to ensure consistent and deterministic test assertions.
+var FixtureTimestamp = time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 
 // UserCommonTestDB is a test fixture that provides a pre-configured database
 // with User model schema and sample user data. It implements the Fixture interface
@@ -37,6 +43,8 @@ func (f *UserCommonTestDB) GenerateData() error {
 			Username:    "johnny.ho",
 			Email:       "johnny.ho@example.com",
 			Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+			CreatedAt:   FixtureTimestamp,
+			UpdatedAt:   FixtureTimestamp,
 		},
 		{
 			ID:          "322ac10b-58cc-4372-a567-0e02b2c3d479",
@@ -44,6 +52,8 @@ func (f *UserCommonTestDB) GenerateData() error {
 			Username:    "huy.ho",
 			Email:       "huy.ho@example.com",
 			Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+			CreatedAt:   FixtureTimestamp,
+			UpdatedAt:   FixtureTimestamp,
 		},
 	}
 
