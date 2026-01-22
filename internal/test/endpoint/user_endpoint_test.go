@@ -11,11 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
-	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	jwtMocks "github.com/HadesHo3820/ebvn-golang-course/pkg/jwtutils/mocks"
-	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -24,11 +20,6 @@ import (
 // TestUserEndpoint_Register validates the POST /v1/users/register endpoint.
 func TestUserEndpoint_Register(t *testing.T) {
 	t.Parallel()
-
-	cfg := &api.Config{
-		ServiceName: "test-service",
-		InstanceID:  "1234",
-	}
 
 	testCases := []struct {
 		name           string
@@ -93,22 +84,8 @@ func TestUserEndpoint_Register(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Setup test database with fixture
-			db := fixture.NewFixture(t, &fixture.UserCommonTestDB{})
-
-			// Create mocked JWT generator
-			mockJwtGen := jwtMocks.NewJWTGenerator(t)
-			mockJwtValidator := jwtMocks.NewJWTValidator(t)
-
-			// Create API engine with dependencies
-			engine := api.New(&api.EngineOpts{
-				Engine:       gin.New(),
-				Cfg:          cfg,
-				RedisClient:  redisPkg.InitMockRedis(t),
-				SqlDB:        db,
-				JwtGen:       mockJwtGen,
-				JwtValidator: mockJwtValidator,
-			})
+			// Create test engine with helper
+			testEngine := NewTestEngine(&TestEngineOpts{T: t})
 
 			// Create request
 			bodyBytes, _ := json.Marshal(tc.requestBody)
@@ -116,7 +93,7 @@ func TestUserEndpoint_Register(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 
 			rec := httptest.NewRecorder()
-			engine.ServeHTTP(rec, req)
+			testEngine.Engine.ServeHTTP(rec, req)
 
 			// Assert status code
 			assert.Equal(t, tc.expectedStatus, rec.Code)
@@ -137,14 +114,6 @@ func TestUserEndpoint_Register(t *testing.T) {
 // TestUserEndpoint_Login validates the POST /v1/users/login endpoint.
 func TestUserEndpoint_Login(t *testing.T) {
 	t.Parallel()
-
-	cfg := &api.Config{
-		ServiceName: "test-service",
-		InstanceID:  "1234",
-	}
-
-	// Hashed password for "Password1!" - from bcrypt
-	// The fixture has a different hash, so we need to register a user first or use mock
 
 	testCases := []struct {
 		name           string
@@ -177,25 +146,11 @@ func TestUserEndpoint_Login(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Setup test database with fixture
-			db := fixture.NewFixture(t, &fixture.UserCommonTestDB{})
-
-			// Create mocked JWT generator
-			mockJwtGen := jwtMocks.NewJWTGenerator(t)
-			mockJwtValidator := jwtMocks.NewJWTValidator(t)
+			// Create test engine with helper
+			testEngine := NewTestEngine(&TestEngineOpts{T: t})
 
 			// Setup mock expectations
-			tc.setupMock(mockJwtGen)
-
-			// Create API engine with dependencies
-			engine := api.New(&api.EngineOpts{
-				Engine:       gin.New(),
-				Cfg:          cfg,
-				RedisClient:  redisPkg.InitMockRedis(t),
-				SqlDB:        db,
-				JwtGen:       mockJwtGen,
-				JwtValidator: mockJwtValidator,
-			})
+			tc.setupMock(testEngine.JwtGen)
 
 			// Create request
 			bodyBytes, _ := json.Marshal(tc.requestBody)
@@ -203,7 +158,7 @@ func TestUserEndpoint_Login(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 
 			rec := httptest.NewRecorder()
-			engine.ServeHTTP(rec, req)
+			testEngine.Engine.ServeHTTP(rec, req)
 
 			// Assert status code
 			assert.Equal(t, tc.expectedStatus, rec.Code)
@@ -214,11 +169,6 @@ func TestUserEndpoint_Login(t *testing.T) {
 // TestUserEndpoint_GetSelfInfo validates the GET /v1/self/info endpoint.
 func TestUserEndpoint_GetSelfInfo(t *testing.T) {
 	t.Parallel()
-
-	cfg := &api.Config{
-		ServiceName: "test-service",
-		InstanceID:  "1234",
-	}
 
 	testCases := []struct {
 		name           string
@@ -262,25 +212,11 @@ func TestUserEndpoint_GetSelfInfo(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Setup test database with fixture
-			db := fixture.NewFixture(t, &fixture.UserCommonTestDB{})
-
-			// Create mocked JWT
-			mockJwtGen := jwtMocks.NewJWTGenerator(t)
-			mockJwtValidator := jwtMocks.NewJWTValidator(t)
+			// Create test engine with helper
+			testEngine := NewTestEngine(&TestEngineOpts{T: t})
 
 			// Setup mock expectations
-			tc.setupMock(mockJwtValidator)
-
-			// Create API engine with dependencies
-			engine := api.New(&api.EngineOpts{
-				Engine:       gin.New(),
-				Cfg:          cfg,
-				RedisClient:  redisPkg.InitMockRedis(t),
-				SqlDB:        db,
-				JwtGen:       mockJwtGen,
-				JwtValidator: mockJwtValidator,
-			})
+			tc.setupMock(testEngine.JwtValidator)
 
 			// Create request
 			req := httptest.NewRequest(http.MethodGet, "/v1/self/info", nil)
@@ -289,7 +225,7 @@ func TestUserEndpoint_GetSelfInfo(t *testing.T) {
 			}
 
 			rec := httptest.NewRecorder()
-			engine.ServeHTTP(rec, req)
+			testEngine.Engine.ServeHTTP(rec, req)
 
 			// Assert status code
 			assert.Equal(t, tc.expectedStatus, rec.Code)
@@ -300,11 +236,6 @@ func TestUserEndpoint_GetSelfInfo(t *testing.T) {
 // TestUserEndpoint_UpdateSelfInfo validates the PUT /v1/self/info endpoint.
 func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 	t.Parallel()
-
-	cfg := &api.Config{
-		ServiceName: "test-service",
-		InstanceID:  "1234",
-	}
 
 	testCases := []struct {
 		name           string
@@ -386,25 +317,11 @@ func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Setup test database with fixture
-			db := fixture.NewFixture(t, &fixture.UserCommonTestDB{})
-
-			// Create mocked JWT
-			mockJwtGen := jwtMocks.NewJWTGenerator(t)
-			mockJwtValidator := jwtMocks.NewJWTValidator(t)
+			// Create test engine with helper
+			testEngine := NewTestEngine(&TestEngineOpts{T: t})
 
 			// Setup mock expectations
-			tc.setupMock(mockJwtValidator)
-
-			// Create API engine with dependencies
-			engine := api.New(&api.EngineOpts{
-				Engine:       gin.New(),
-				Cfg:          cfg,
-				RedisClient:  redisPkg.InitMockRedis(t),
-				SqlDB:        db,
-				JwtGen:       mockJwtGen,
-				JwtValidator: mockJwtValidator,
-			})
+			tc.setupMock(testEngine.JwtValidator)
 
 			// Create request
 			bodyBytes, _ := json.Marshal(tc.requestBody)
@@ -415,7 +332,7 @@ func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 			}
 
 			rec := httptest.NewRecorder()
-			engine.ServeHTTP(rec, req)
+			testEngine.Engine.ServeHTTP(rec, req)
 
 			// Assert status code
 			assert.Equal(t, tc.expectedStatus, rec.Code)

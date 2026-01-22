@@ -1,16 +1,14 @@
 package user
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
+	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -201,40 +199,21 @@ func TestUserHandler_Register(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Create a response recorder to capture the response
-			rec := httptest.NewRecorder()
-
-			// Create a Gin test context
-			gctx, _ := gin.CreateTestContext(rec)
-
-			// Create request body as JSON
-			bodyBytes, _ := json.Marshal(tc.requestBody)
-			gctx.Request = httptest.NewRequest(
-				http.MethodPost,
-				"/v1/users/register",
-				bytes.NewReader(bodyBytes),
-			)
-			gctx.Request.Header.Set("Content-Type", "application/json")
+			// Create test context with JSON body using helper
+			testCtx := handlertest.NewTestContext(http.MethodPost, "/v1/users/register").
+				WithJSONBody(tc.requestBody)
 
 			// Setup mock service
-			svcMock := tc.setupMockSvc(t, gctx)
+			svcMock := tc.setupMockSvc(t, testCtx.Ctx)
 
 			// Create handler with mock service
 			handler := NewUserHandler(svcMock)
 
 			// Call the handler
-			handler.Register(gctx)
+			handler.Register(testCtx.Ctx)
 
-			// Assert status code
-			assert.Equal(t, tc.expectedStatus, rec.Code)
-
-			// Assert response body if expected
-			if tc.expectedBody != nil {
-				var actualBody map[string]any
-				err := json.Unmarshal(rec.Body.Bytes(), &actualBody)
-				assert.NoError(t, err)
-				assert.Equal(t, tc.expectedBody, actualBody)
-			}
+			// Assert response using helper
+			handlertest.AssertJSONResponse(t, testCtx.Recorder, tc.expectedStatus, tc.expectedBody)
 		})
 	}
 }

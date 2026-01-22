@@ -1,7 +1,6 @@
 package jwtutils
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -17,12 +16,8 @@ import (
 func TestNewJWTGenerator(t *testing.T) {
 	t.Parallel()
 
-	// Create a temporary file with invalid PEM content for testing
-	invalidPEMFile, err := os.CreateTemp("", "invalid_key_*.pem")
-	assert.NoError(t, err)
-	defer os.Remove(invalidPEMFile.Name())
-	_, _ = invalidPEMFile.WriteString("this is not a valid PEM file")
-	invalidPEMFile.Close()
+	// Create invalid PEM file using helper
+	invalidPEMPath := CreateInvalidPEMFile(t)
 
 	testCases := []struct {
 		name      string
@@ -43,7 +38,7 @@ func TestNewJWTGenerator(t *testing.T) {
 		},
 		{
 			name:      "error - invalid PEM content",
-			keyPath:   invalidPEMFile.Name(),
+			keyPath:   invalidPEMPath,
 			expectErr: true,
 			errMsg:    "invalid",
 		},

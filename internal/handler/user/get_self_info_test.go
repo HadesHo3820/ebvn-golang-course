@@ -2,14 +2,13 @@ package user
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
+	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -144,43 +143,21 @@ func TestUserHandler_GetSelfInfo(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Create a response recorder to capture the response
-			rec := httptest.NewRecorder()
-
-			// Create a Gin test context
-			gctx, _ := gin.CreateTestContext(rec)
-
-			// Create request
-			gctx.Request = httptest.NewRequest(
-				http.MethodGet,
-				"/v1/self/info",
-				nil,
-			)
-
-			// Set JWT claims in context (simulates JWT middleware)
-			if tc.jwtClaims != nil {
-				gctx.Set("claims", tc.jwtClaims)
-			}
+			// Create test context with JWT claims using helper
+			testCtx := handlertest.NewTestContext(http.MethodGet, "/v1/self/info").
+				WithJWTClaims(tc.jwtClaims)
 
 			// Setup mock service
-			svcMock := tc.setupMockSvc(t, gctx)
+			svcMock := tc.setupMockSvc(t, testCtx.Ctx)
 
 			// Create handler with mock service
 			handler := NewUserHandler(svcMock)
 
 			// Call the handler
-			handler.GetSelfInfo(gctx)
+			handler.GetSelfInfo(testCtx.Ctx)
 
-			// Assert status code
-			assert.Equal(t, tc.expectedStatus, rec.Code)
-
-			// Assert response body
-			if tc.expectedBody != nil {
-				var actualBody map[string]any
-				err := json.Unmarshal(rec.Body.Bytes(), &actualBody)
-				assert.NoError(t, err)
-				assert.Equal(t, tc.expectedBody, actualBody)
-			}
+			// Assert response using helper
+			handlertest.AssertJSONResponse(t, testCtx.Recorder, tc.expectedStatus, tc.expectedBody)
 		})
 	}
 }
