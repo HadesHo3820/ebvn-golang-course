@@ -10,6 +10,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// whereIDClause is the SQL WHERE clause for filtering by ID.
+const whereIDClause = "id = ?"
+
 // TestUser_CreateUser tests the CreateUser method of the User repository.
 // It uses table-driven tests with the UserCommonTestDB fixture to verify:
 //   - Successful user creation with valid input
@@ -37,19 +40,19 @@ func TestUser_CreateUser(t *testing.T) {
 			},
 			inputUser: &model.User{
 				ID:          "229ac10b-58cc-4372-a567-0e02b2c3d479",
-				DisplayName: "Johnny Ho",
+				DisplayName: fixture.FixtureUserOneDisplayName,
 				Username:    "johnny.ho1",
 				Email:       "johnny.ho1@example.com",
-				Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+				Password:    fixture.FixtureUserPassword,
 				CreatedAt:   createdAt,
 				UpdatedAt:   updatedAt,
 			},
 			expectedOutput: &model.User{
 				ID:          "229ac10b-58cc-4372-a567-0e02b2c3d479",
-				DisplayName: "Johnny Ho",
+				DisplayName: fixture.FixtureUserOneDisplayName,
 				Username:    "johnny.ho1",
 				Email:       "johnny.ho1@example.com",
-				Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+				Password:    fixture.FixtureUserPassword,
 				CreatedAt:   createdAt,
 				UpdatedAt:   updatedAt,
 			},
@@ -66,11 +69,11 @@ func TestUser_CreateUser(t *testing.T) {
 				return fixture.NewFixture(t, &fixture.UserCommonTestDB{})
 			},
 			inputUser: &model.User{
-				ID:          "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-				DisplayName: "Johnny Ho",
-				Username:    "johnny.ho",
-				Email:       "johnny.ho@example.com",
-				Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+				ID:          fixture.FixtureUserOneID,
+				DisplayName: fixture.FixtureUserOneDisplayName,
+				Username:    fixture.FixtureUserOneUsername,
+				Email:       fixture.FixtureUserOneEmail,
+				Password:    fixture.FixtureUserPassword,
 			},
 			expectedErr: dbutils.ErrDuplicationType,
 		},
@@ -122,13 +125,13 @@ func TestUser_GetUserByUsername(t *testing.T) {
 			setupDB: func(t *testing.T) *gorm.DB {
 				return fixture.NewFixture(t, &fixture.UserCommonTestDB{})
 			},
-			inputUsername: "johnny.ho",
+			inputUsername: fixture.FixtureUserOneUsername,
 			expectedOutput: &model.User{
-				ID:          "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-				DisplayName: "Johnny Ho",
-				Username:    "johnny.ho",
-				Email:       "johnny.ho@example.com",
-				Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+				ID:          fixture.FixtureUserOneID,
+				DisplayName: fixture.FixtureUserOneDisplayName,
+				Username:    fixture.FixtureUserOneUsername,
+				Email:       fixture.FixtureUserOneEmail,
+				Password:    fixture.FixtureUserPassword,
 				CreatedAt:   fixture.FixtureTimestamp,
 				UpdatedAt:   fixture.FixtureTimestamp,
 			},
@@ -193,7 +196,7 @@ func TestUser_GetUserById(t *testing.T) {
 				DisplayName: "Huy Ho",
 				Username:    "huy.ho",
 				Email:       "huy.ho@example.com",
-				Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+				Password:    fixture.FixtureUserPassword,
 				CreatedAt:   fixture.FixtureTimestamp,
 				UpdatedAt:   fixture.FixtureTimestamp,
 			},
@@ -256,15 +259,15 @@ func TestUser_UpdateUser(t *testing.T) {
 			setupDB: func(t *testing.T) *gorm.DB {
 				return fixture.NewFixture(t, &fixture.UserCommonTestDB{})
 			},
-			inputUserID:      "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+			inputUserID:      fixture.FixtureUserOneID,
 			inputDisplayName: "Johnny Ho Updated",
 			inputEmail:       "",
 			verifyFunc: func(t *testing.T, db *gorm.DB, userID string) {
 				var user model.User
-				err := db.Where("id = ?", userID).First(&user).Error
+				err := db.Where(whereIDClause, userID).First(&user).Error
 				assert.NoError(t, err)
 				assert.Equal(t, "Johnny Ho Updated", user.DisplayName)
-				assert.Equal(t, "johnny.ho@example.com", user.Email) // Email unchanged
+				assert.Equal(t, fixture.FixtureUserOneEmail, user.Email) // Email unchanged
 			},
 		},
 		{
@@ -272,14 +275,14 @@ func TestUser_UpdateUser(t *testing.T) {
 			setupDB: func(t *testing.T) *gorm.DB {
 				return fixture.NewFixture(t, &fixture.UserCommonTestDB{})
 			},
-			inputUserID:      "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+			inputUserID:      fixture.FixtureUserOneID,
 			inputDisplayName: "",
 			inputEmail:       "johnny.ho.updated@example.com",
 			verifyFunc: func(t *testing.T, db *gorm.DB, userID string) {
 				var user model.User
-				err := db.Where("id = ?", userID).First(&user).Error
+				err := db.Where(whereIDClause, userID).First(&user).Error
 				assert.NoError(t, err)
-				assert.Equal(t, "Johnny Ho", user.DisplayName) // DisplayName unchanged
+				assert.Equal(t, fixture.FixtureUserOneDisplayName, user.DisplayName) // DisplayName unchanged
 				assert.Equal(t, "johnny.ho.updated@example.com", user.Email)
 			},
 		},
@@ -288,12 +291,12 @@ func TestUser_UpdateUser(t *testing.T) {
 			setupDB: func(t *testing.T) *gorm.DB {
 				return fixture.NewFixture(t, &fixture.UserCommonTestDB{})
 			},
-			inputUserID:      "322ac10b-58cc-4372-a567-0e02b2c3d479",
+			inputUserID:      fixture.FixtureUserTwoID,
 			inputDisplayName: "Huy Ho Updated",
 			inputEmail:       "huy.ho.updated@example.com",
 			verifyFunc: func(t *testing.T, db *gorm.DB, userID string) {
 				var user model.User
-				err := db.Where("id = ?", userID).First(&user).Error
+				err := db.Where(whereIDClause, userID).First(&user).Error
 				assert.NoError(t, err)
 				assert.Equal(t, "Huy Ho Updated", user.DisplayName)
 				assert.Equal(t, "huy.ho.updated@example.com", user.Email)
@@ -310,7 +313,7 @@ func TestUser_UpdateUser(t *testing.T) {
 			verifyFunc: func(t *testing.T, db *gorm.DB, userID string) {
 				// Verify user was not created
 				var user model.User
-				err := db.Where("id = ?", userID).First(&user).Error
+				err := db.Where(whereIDClause, userID).First(&user).Error
 				assert.ErrorIs(t, err, gorm.ErrRecordNotFound) // Should not find the user
 			},
 		},
@@ -319,9 +322,9 @@ func TestUser_UpdateUser(t *testing.T) {
 			setupDB: func(t *testing.T) *gorm.DB {
 				return fixture.NewFixture(t, &fixture.UserCommonTestDB{})
 			},
-			inputUserID:      "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+			inputUserID:      fixture.FixtureUserOneID,
 			inputDisplayName: "",
-			inputEmail:       "huy.ho@example.com", // Already taken by another user
+			inputEmail:       fixture.FixtureUserTwoEmail, // Already taken by another user
 			expectedErr:      dbutils.ErrDuplicationType,
 		},
 	}

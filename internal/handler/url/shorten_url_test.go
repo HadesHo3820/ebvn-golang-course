@@ -8,6 +8,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
@@ -120,7 +121,7 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody: map[string]any{
-				"message": "Processing error",
+				"message": response.InternalErrMessage,
 			},
 		},
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -77,7 +78,7 @@ func TestUrlShortenEndpoint(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			validateBody: func(t *testing.T, body map[string]interface{}) {
-				assert.Equal(t, "Input error", body["message"])
+				assert.Equal(t, response.InputErrMessage, body["message"])
 			},
 		},
 		{
@@ -92,7 +93,7 @@ func TestUrlShortenEndpoint(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			validateBody: func(t *testing.T, body map[string]interface{}) {
-				assert.Equal(t, "Input error", body["message"])
+				assert.Equal(t, response.InputErrMessage, body["message"])
 			},
 		},
 	}
@@ -201,7 +202,7 @@ func TestGetUrlEndpoint(t *testing.T) {
 				var resp map[string]any
 				err := json.Unmarshal(rec.Body.Bytes(), &resp)
 				assert.NoError(t, err)
-				assert.Equal(t, "Processing error", resp["message"])
+				assert.Equal(t, response.InternalErrMessage, resp["message"])
 			},
 		},
 	}

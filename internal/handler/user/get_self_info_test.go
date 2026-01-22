@@ -10,6 +10,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
 	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
@@ -134,7 +135,7 @@ func TestUserHandler_GetSelfInfo(t *testing.T) {
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody: map[string]any{
-				"message": "Processing error",
+				"message": response.InternalErrMessage,
 			},
 		},
 	}

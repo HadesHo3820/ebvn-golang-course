@@ -10,6 +10,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
@@ -28,6 +29,11 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 
 	// Disable Gin debug mode for cleaner test output
 	gin.SetMode(gin.TestMode)
+
+	// Default values
+	defaultUserID := "test-user-id"
+	defaultDisplayName := "New Display Name"
+	defaultEmail := "new@example.com"
 
 	testCases := []struct {
 		name string
@@ -48,58 +54,58 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 		{
 			name: "success - update both fields",
 			jwtClaims: jwt.MapClaims{
-				"sub": "test-user-id",
+				"sub": defaultUserID,
 			},
 			requestBody: fixture.DefaultUpdateUserBody(),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
 					ctx,
-					"test-user-id", "New Display Name", "new@example.com",
+					defaultUserID, defaultDisplayName, defaultEmail,
 				).Return(nil)
 				return svcMock
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
-				"message": "Edit current user successfully!",
+				"message": updateSelfInfoSuccessMessage,
 			},
 		},
 		{
 			name: "success - update display_name only",
 			jwtClaims: jwt.MapClaims{
-				"sub": "test-user-id",
+				"sub": defaultUserID,
 			},
 			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("email", "")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
 					ctx,
-					"test-user-id", "New Display Name", "",
+					defaultUserID, defaultDisplayName, "",
 				).Return(nil)
 				return svcMock
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
-				"message": "Edit current user successfully!",
+				"message": updateSelfInfoSuccessMessage,
 			},
 		},
 		{
 			name: "success - update email only",
 			jwtClaims: jwt.MapClaims{
-				"sub": "test-user-id",
+				"sub": defaultUserID,
 			},
 			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("display_name", "")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
 					ctx,
-					"test-user-id", "", "new@example.com",
+					defaultUserID, "", defaultEmail,
 				).Return(nil)
 				return svcMock
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
-				"message": "Edit current user successfully!",
+				"message": updateSelfInfoSuccessMessage,
 			},
 		},
 		{
@@ -118,14 +124,14 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 		{
 			name: "error - no update data provided",
 			jwtClaims: jwt.MapClaims{
-				"sub": "test-user-id",
+				"sub": defaultUserID,
 			},
 			requestBody: map[string]string{}, // Empty body
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
 					ctx,
-					"test-user-id", "", "",
+					defaultUserID, "", "",
 				).Return(service.ErrClientNoUpdate)
 				return svcMock
 			},
@@ -144,7 +150,7 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
 					ctx,
-					"non-existent-id", "New Display Name", "",
+					"non-existent-id", defaultDisplayName, "",
 				).Return(dbutils.ErrNotFoundType)
 				return svcMock
 			},
@@ -156,26 +162,26 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 		{
 			name: "error - internal server error",
 			jwtClaims: jwt.MapClaims{
-				"sub": "test-user-id",
+				"sub": defaultUserID,
 			},
 			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("email", "")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
 					ctx,
-					"test-user-id", "New Display Name", "",
+					defaultUserID, defaultDisplayName, "",
 				).Return(assert.AnError) // generic error
 				return svcMock
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody: map[string]any{
-				"message": "Processing error",
+				"message": response.InternalErrMessage,
 			},
 		},
 		{
 			name: "error - invalid email format",
 			jwtClaims: jwt.MapClaims{
-				"sub": "test-user-id",
+				"sub": defaultUserID,
 			},
 			requestBody: fixture.DefaultUpdateUserBody(
 				fixture.WithField("display_name", ""),

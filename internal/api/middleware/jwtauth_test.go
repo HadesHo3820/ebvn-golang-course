@@ -42,8 +42,9 @@ func TestJWTAuth(t *testing.T) {
 		expectClaims bool
 	}{
 		{
-			name:           "error - missing Authorization header",
-			authHeader:     "",
+			name:       "error - missing Authorization header",
+			authHeader: "",
+			// No mock setup needed - middleware rejects before token validation
 			setupMock:      func(m *jwtMocks.JWTValidator) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody: map[string]any{
@@ -52,8 +53,9 @@ func TestJWTAuth(t *testing.T) {
 			expectClaims: false,
 		},
 		{
-			name:           "error - invalid header format (no Bearer prefix)",
-			authHeader:     "InvalidToken123",
+			name:       "error - invalid header format (no Bearer prefix)",
+			authHeader: "InvalidToken123",
+			// No mock setup needed - middleware rejects before token validation
 			setupMock:      func(m *jwtMocks.JWTValidator) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody: map[string]any{
@@ -62,8 +64,9 @@ func TestJWTAuth(t *testing.T) {
 			expectClaims: false,
 		},
 		{
-			name:           "error - invalid header format (wrong prefix)",
-			authHeader:     "Basic sometoken",
+			name:       "error - invalid header format (wrong prefix)",
+			authHeader: "Basic sometoken",
+			// No mock setup needed - middleware rejects before token validation
 			setupMock:      func(m *jwtMocks.JWTValidator) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody: map[string]any{

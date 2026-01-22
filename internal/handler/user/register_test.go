@@ -11,6 +11,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,6 +30,12 @@ func TestUserHandler_Register(t *testing.T) {
 
 	// Fixed timestamp for consistent test assertions
 	fixedTime := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Default values
+	defaultUsername := "testuser"
+	defaultPassword := "Password1!"
+	defaultDisplayName := "Test User"
+	defaultEmail := "test@example.com"
 
 	testCases := []struct {
 		name string
@@ -51,12 +58,12 @@ func TestUserHandler_Register(t *testing.T) {
 				// mock.Anything for gin.Context since it implements context.Context
 				svcMock.On("CreateUser",
 					ctx,
-					"testuser", "Password1!", "Test User", "test@example.com",
+					defaultUsername, defaultPassword, defaultDisplayName, defaultEmail,
 				).Return(&model.User{
 					ID:          "test-uuid",
-					Username:    "testuser",
-					DisplayName: "Test User",
-					Email:       "test@example.com",
+					Username:    defaultUsername,
+					DisplayName: defaultDisplayName,
+					Email:       defaultEmail,
 					UpdatedAt:   fixedTime,
 				}, nil)
 				return svcMock
@@ -66,9 +73,9 @@ func TestUserHandler_Register(t *testing.T) {
 				"message": "Register an user successfully!",
 				"data": map[string]any{
 					"id":           "test-uuid",
-					"username":     "testuser",
-					"display_name": "Test User",
-					"email":        "test@example.com",
+					"username":     defaultUsername,
+					"display_name": defaultDisplayName,
+					"email":        defaultEmail,
 					"updated_at":   fixedTime.String(),
 				},
 			},
@@ -100,13 +107,13 @@ func TestUserHandler_Register(t *testing.T) {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("CreateUser",
 					ctx,
-					"testuser", "Password1!", "Test User", "test@example.com",
+					defaultUsername, defaultPassword, defaultDisplayName, defaultEmail,
 				).Return(nil, assert.AnError) // generic error
 				return svcMock
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody: map[string]any{
-				"message": "Processing error",
+				"message": response.InternalErrMessage,
 			},
 		},
 		{

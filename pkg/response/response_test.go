@@ -37,7 +37,7 @@ func TestInputFieldError(t *testing.T) {
 			setupError: func() error {
 				return errors.New("some random error")
 			},
-			expectedMessage: "Input error",
+			expectedMessage: InputErrMessage,
 			expectedDetails: nil,
 		},
 		{
@@ -46,7 +46,7 @@ func TestInputFieldError(t *testing.T) {
 				input := testInput{Username: "", Email: "valid@example.com", Age: 20}
 				return validate.Struct(input)
 			},
-			expectedMessage: "Input error",
+			expectedMessage: InputErrMessage,
 			expectedDetails: []string{"Username is invalid (required)"},
 		},
 		{
@@ -55,7 +55,7 @@ func TestInputFieldError(t *testing.T) {
 				input := testInput{Username: "", Email: "invalid-email", Age: 10}
 				return validate.Struct(input)
 			},
-			expectedMessage: "Input error",
+			expectedMessage: InputErrMessage,
 			expectedDetails: []string{
 				"Username is invalid (required)",
 				"Email is invalid (email)",
@@ -68,7 +68,7 @@ func TestInputFieldError(t *testing.T) {
 				input := testInput{Username: "user", Email: "not-an-email", Age: 20}
 				return validate.Struct(input)
 			},
-			expectedMessage: "Input error",
+			expectedMessage: InputErrMessage,
 			expectedDetails: []string{"Email is invalid (email)"},
 		},
 	}
@@ -113,12 +113,12 @@ func TestPredefinedResponses(t *testing.T) {
 	t.Parallel()
 
 	t.Run("InternalErrResponse", func(t *testing.T) {
-		assert.Equal(t, "Processing error", InternalErrResponse.Message)
+		assert.Equal(t, InternalErrMessage, InternalErrResponse.Message)
 		assert.Nil(t, InternalErrResponse.Details)
 	})
 
 	t.Run("InputErrResponse", func(t *testing.T) {
-		assert.Equal(t, "Input error", InputErrResponse.Message)
+		assert.Equal(t, InputErrMessage, InputErrResponse.Message)
 		assert.Nil(t, InputErrResponse.Details)
 	})
 }

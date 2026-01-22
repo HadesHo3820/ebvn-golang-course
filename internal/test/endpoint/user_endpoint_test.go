@@ -18,6 +18,24 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// testValidUserDisplayName is the display name used for valid user test cases.
+const testValidUserDisplayName = "Valid User"
+
+// testValidAuthToken is the Authorization header value used for authenticated test cases.
+const testValidAuthToken = "Bearer valid.jwt.token"
+
+// testValidUsername is the username used for valid user test cases.
+const testValidUsername = "validuser"
+
+// testValidEmail is the email used for valid user test cases.
+const testValidEmail = "valid@example.com"
+
+// HTTP header constants
+const (
+	contentTypeHeader = "Content-Type"
+	contentTypeJSON   = "application/json"
+)
+
 // TestUserEndpoint_Register validates the POST /v1/users/register endpoint.
 func TestUserEndpoint_Register(t *testing.T) {
 	t.Parallel()
@@ -50,8 +68,8 @@ func TestUserEndpoint_Register(t *testing.T) {
 		{
 			name: "error - invalid email format",
 			requestBody: fixture.DefaultRegisterBody(
-				fixture.WithField("username", "validuser"),
-				fixture.WithField("display_name", "Valid User"),
+				fixture.WithField("username", testValidUsername),
+				fixture.WithField("display_name", testValidUserDisplayName),
 				fixture.WithField("email", "invalid-email"),
 			),
 			expectedStatus: http.StatusBadRequest,
@@ -59,20 +77,20 @@ func TestUserEndpoint_Register(t *testing.T) {
 		{
 			name: "error - password too short",
 			requestBody: fixture.DefaultRegisterBody(
-				fixture.WithField("username", "validuser"),
+				fixture.WithField("username", testValidUsername),
 				fixture.WithField("password", "Pass1!"),
-				fixture.WithField("display_name", "Valid User"),
-				fixture.WithField("email", "valid@example.com"),
+				fixture.WithField("display_name", testValidUserDisplayName),
+				fixture.WithField("email", testValidEmail),
 			),
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "error - password missing special character",
 			requestBody: fixture.DefaultRegisterBody(
-				fixture.WithField("username", "validuser"),
+				fixture.WithField("username", testValidUsername),
 				fixture.WithField("password", "Password123"),
-				fixture.WithField("display_name", "Valid User"),
-				fixture.WithField("email", "valid@example.com"),
+				fixture.WithField("display_name", testValidUserDisplayName),
+				fixture.WithField("email", testValidEmail),
 			),
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -88,7 +106,7 @@ func TestUserEndpoint_Register(t *testing.T) {
 			// Create request
 			bodyBytes, _ := json.Marshal(tc.requestBody)
 			req := httptest.NewRequest(http.MethodPost, "/v1/users/register", bytes.NewReader(bodyBytes))
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set(contentTypeHeader, contentTypeJSON)
 
 			rec := httptest.NewRecorder()
 			testEngine.Engine.ServeHTTP(rec, req)
@@ -150,7 +168,7 @@ func TestUserEndpoint_Login(t *testing.T) {
 			// Create request
 			bodyBytes, _ := json.Marshal(tc.requestBody)
 			req := httptest.NewRequest(http.MethodPost, "/v1/users/login", bytes.NewReader(bodyBytes))
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set(contentTypeHeader, contentTypeJSON)
 
 			rec := httptest.NewRecorder()
 			testEngine.Engine.ServeHTTP(rec, req)
@@ -173,9 +191,9 @@ func TestUserEndpoint_GetSelfInfo(t *testing.T) {
 	}{
 		{
 			name:      "success - get user profile",
-			authToken: "Bearer valid.jwt.token",
+			authToken: testValidAuthToken,
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "f47ac10b-58cc-4372-a567-0e02b2c3d479")) // johnny.ho from fixture
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", fixture.FixtureUserOneID)) // johnny.ho from fixture
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
@@ -183,7 +201,7 @@ func TestUserEndpoint_GetSelfInfo(t *testing.T) {
 		},
 		{
 			name:      "error - user not found",
-			authToken: "Bearer valid.jwt.token",
+			authToken: testValidAuthToken,
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
 				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "non-existent-user-id"))
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
@@ -237,10 +255,10 @@ func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 	}{
 		{
 			name:        "success - update display name",
-			authToken:   "Bearer valid.jwt.token",
+			authToken:   testValidAuthToken,
 			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("email", "")),
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "f47ac10b-58cc-4372-a567-0e02b2c3d479")) // johnny.ho from fixture
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", fixture.FixtureUserOneID)) // johnny.ho from fixture
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
@@ -248,10 +266,10 @@ func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 		},
 		{
 			name:        "success - update email",
-			authToken:   "Bearer valid.jwt.token",
+			authToken:   testValidAuthToken,
 			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("display_name", "")),
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "f47ac10b-58cc-4372-a567-0e02b2c3d479"))
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", fixture.FixtureUserOneID))
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
@@ -259,10 +277,10 @@ func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 		},
 		{
 			name:        "error - no update data",
-			authToken:   "Bearer valid.jwt.token",
+			authToken:   testValidAuthToken,
 			requestBody: map[string]string{},
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "f47ac10b-58cc-4372-a567-0e02b2c3d479"))
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", fixture.FixtureUserOneID))
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
@@ -270,13 +288,13 @@ func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 		},
 		{
 			name:      "error - invalid email format",
-			authToken: "Bearer valid.jwt.token",
+			authToken: testValidAuthToken,
 			requestBody: fixture.DefaultUpdateUserBody(
 				fixture.WithField("display_name", ""),
 				fixture.WithField("email", "invalid-email"),
 			),
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "f47ac10b-58cc-4372-a567-0e02b2c3d479"))
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", fixture.FixtureUserOneID))
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
@@ -304,7 +322,7 @@ func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 			// Create request
 			bodyBytes, _ := json.Marshal(tc.requestBody)
 			req := httptest.NewRequest(http.MethodPut, "/v1/self/info", bytes.NewReader(bodyBytes))
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set(contentTypeHeader, contentTypeJSON)
 			if tc.authToken != "" {
 				req.Header.Set("Authorization", tc.authToken)
 			}

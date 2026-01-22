@@ -18,18 +18,23 @@ type Message struct {
 	Details any `json:"details,omitempty"`
 }
 
+const (
+	InternalErrMessage = "Processing error"
+	InputErrMessage    = "Input error"
+)
+
 // Common response messages used throughout the application.
 var (
 	// InternalErrResponse is a generic response for internal server errors.
 	// It should be used when the server encounters an unexpected condition.
 	InternalErrResponse = Message{
-		Message: "Processing error",
+		Message: InternalErrMessage,
 		Details: nil,
 	}
 	// InputErrResponse is a generic response for client-side input errors.
 	// It serves as a fallback when specific validation details are not available.
 	InputErrResponse = Message{
-		Message: "Input error",
+		Message: InputErrMessage,
 		Details: nil,
 	}
 )
@@ -49,7 +54,7 @@ func InputFieldError(err error) Message {
 	}
 
 	return Message{
-		Message: "Input error",
+		Message: InputErrMessage,
 		Details: errs,
 	}
 }

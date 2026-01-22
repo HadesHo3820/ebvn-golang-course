@@ -15,8 +15,12 @@ import (
 type updateSelfInfoReqBody struct {
 	DisplayName string `json:"display_name"`
 	// `validate:"omitempty,email"` allow empty email (only validates format when a value is provided)
-	Email       string `json:"email" validate:"omitempty,email"`
+	Email string `json:"email" validate:"omitempty,email"`
 }
+
+const (
+	updateSelfInfoSuccessMessage = "Edit current user successfully!"
+)
 
 // UpdateSelfInfo handles user profile update requests.
 // It extracts the user ID from the JWT token and updates the user's display name and/or email.
@@ -75,6 +79,6 @@ func (u *userHandler) UpdateSelfInfo(c *gin.Context) {
 
 	// return success
 	c.JSON(http.StatusOK, &response.Message{
-		Message: "Edit current user successfully!",
+		Message: updateSelfInfoSuccessMessage,
 	})
 }

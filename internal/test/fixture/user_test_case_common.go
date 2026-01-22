@@ -26,6 +26,19 @@ func (f *UserCommonTestDB) Migrate() error {
 	return f.db.AutoMigrate(&model.User{})
 }
 
+const (
+	FixtureUserOneID          = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+	FixtureUserOneDisplayName = "Johnny Ho"
+	FixtureUserOneUsername    = "johnny.ho"
+	FixtureUserOneEmail       = "johnny.ho@example.com"
+	FixtureUserPassword       = "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf"
+
+	FixtureUserTwoID          = "322ac10b-58cc-4372-a567-0e02b2c3d479"
+	FixtureUserTwoDisplayName = "Huy Ho"
+	FixtureUserTwoUsername    = "huy.ho"
+	FixtureUserTwoEmail       = "huy.ho@example.com"
+)
+
 // GenerateData seeds the test database with sample user records.
 // It creates a new database session and inserts predefined test users
 // using batch insertion for efficiency. The sample data includes:
@@ -38,20 +51,20 @@ func (f *UserCommonTestDB) GenerateData() error {
 
 	users := []*model.User{
 		{
-			ID:          "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-			DisplayName: "Johnny Ho",
-			Username:    "johnny.ho",
-			Email:       "johnny.ho@example.com",
-			Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+			ID:          FixtureUserOneID,
+			DisplayName: FixtureUserOneDisplayName,
+			Username:    FixtureUserOneUsername,
+			Email:       FixtureUserOneEmail,
+			Password:    FixtureUserPassword,
 			CreatedAt:   FixtureTimestamp,
 			UpdatedAt:   FixtureTimestamp,
 		},
 		{
-			ID:          "322ac10b-58cc-4372-a567-0e02b2c3d479",
-			DisplayName: "Huy Ho",
-			Username:    "huy.ho",
-			Email:       "huy.ho@example.com",
-			Password:    "$2a$$2a$10$wfpS7JvQgcHvvHLk86eFs.jhKCIucgr9fhPkyBLVQntSH0nB05106$wfpS23sf",
+			ID:          FixtureUserTwoID,
+			DisplayName: FixtureUserTwoDisplayName,
+			Username:    FixtureUserTwoUsername,
+			Email:       FixtureUserTwoEmail,
+			Password:    FixtureUserPassword,
 			CreatedAt:   FixtureTimestamp,
 			UpdatedAt:   FixtureTimestamp,
 		},
