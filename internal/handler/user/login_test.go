@@ -7,6 +7,7 @@ import (
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
 	"github.com/gin-gonic/gin"
@@ -40,11 +41,8 @@ func TestUserHandler_Login(t *testing.T) {
 		expectedBody   map[string]any
 	}{
 		{
-			name: "success - valid login",
-			requestBody: map[string]string{
-				"username": "testuser",
-				"password": "password123",
-			},
+			name:        "success - valid login",
+			requestBody: fixture.DefaultLoginBody(),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				// mock.Anything for gin.Context since it implements context.Context
@@ -63,11 +61,8 @@ func TestUserHandler_Login(t *testing.T) {
 			},
 		},
 		{
-			name: "error - invalid credentials",
-			requestBody: map[string]string{
-				"username": "testuser",
-				"password": "wrongpassword123",
-			},
+			name:        "error - invalid credentials",
+			requestBody: fixture.DefaultLoginBody(fixture.WithField("password", "wrongpassword123")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("Login",
@@ -81,11 +76,8 @@ func TestUserHandler_Login(t *testing.T) {
 			},
 		},
 		{
-			name: "error - user not found",
-			requestBody: map[string]string{
-				"username": "nonexistent",
-				"password": "password123",
-			},
+			name:        "error - user not found",
+			requestBody: fixture.DefaultLoginBody(fixture.WithField("username", "nonexistent")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("Login",
@@ -99,11 +91,8 @@ func TestUserHandler_Login(t *testing.T) {
 			},
 		},
 		{
-			name: "error - internal server error",
-			requestBody: map[string]string{
-				"username": "testuser",
-				"password": "password123",
-			},
+			name:        "error - internal server error",
+			requestBody: fixture.DefaultLoginBody(),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("Login",
@@ -117,10 +106,8 @@ func TestUserHandler_Login(t *testing.T) {
 			},
 		},
 		{
-			name: "error - missing username",
-			requestBody: map[string]string{
-				"password": "password123",
-			},
+			name:        "error - missing username",
+			requestBody: fixture.DefaultLoginBody(fixture.WithField("username", "")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				// Service should not be called when validation fails
 				return mocks.NewUser(t)
@@ -130,11 +117,8 @@ func TestUserHandler_Login(t *testing.T) {
 			expectedBody: nil,
 		},
 		{
-			name: "error - password too short",
-			requestBody: map[string]string{
-				"username": "testuser",
-				"password": "short", // less than 8 characters
-			},
+			name:        "error - password too short",
+			requestBody: fixture.DefaultLoginBody(fixture.WithField("password", "short")), // less than 8 characters
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				// Service should not be called when validation fails
 				return mocks.NewUser(t)

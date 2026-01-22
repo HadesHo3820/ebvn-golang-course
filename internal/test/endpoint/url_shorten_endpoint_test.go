@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
 	"github.com/gin-gonic/gin"
@@ -47,11 +48,7 @@ func TestUrlShortenEndpoint(t *testing.T) {
 		{
 			name: "success - shorten valid URL",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				body := map[string]any{
-					"url": "https://example.com",
-					"exp": 3600,
-				}
-				jsonBody, _ := json.Marshal(body)
+				jsonBody, _ := json.Marshal(fixture.DefaultShortenURLBody())
 				req := httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 				req.Header.Set("Content-Type", "application/json")
 				rec := httptest.NewRecorder()
@@ -71,11 +68,7 @@ func TestUrlShortenEndpoint(t *testing.T) {
 		{
 			name: "bad request - invalid URL format",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				body := map[string]any{
-					"url": "not-a-valid-url",
-					"exp": 3600,
-				}
-				jsonBody, _ := json.Marshal(body)
+				jsonBody, _ := json.Marshal(fixture.DefaultShortenURLBody(fixture.WithFieldAny("url", "not-a-valid-url")))
 				req := httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 				req.Header.Set("Content-Type", "application/json")
 				rec := httptest.NewRecorder()
@@ -90,10 +83,7 @@ func TestUrlShortenEndpoint(t *testing.T) {
 		{
 			name: "bad request - missing URL",
 			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				body := map[string]any{
-					"exp": 3600,
-				}
-				jsonBody, _ := json.Marshal(body)
+				jsonBody, _ := json.Marshal(fixture.DefaultShortenURLBody(fixture.WithFieldAny("url", nil)))
 				req := httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
 				req.Header.Set("Content-Type", "application/json")
 				rec := httptest.NewRecorder()

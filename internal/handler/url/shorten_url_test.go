@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
 	"github.com/gin-gonic/gin"
 )
@@ -39,11 +40,8 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 		expectedBody   map[string]any
 	}{
 		{
-			name: "success - shorten URL with valid expiration",
-			requestBody: map[string]any{
-				"url": "https://example.com",
-				"exp": 3600,
-			},
+			name:        "success - shorten URL with valid expiration",
+			requestBody: fixture.DefaultShortenURLBody(),
 			setupMockSvc: func(ctx *gin.Context) *mocks.ShortenUrl {
 				svcMock := mocks.NewShortenUrl(t)
 				svcMock.On("ShortenUrl",
@@ -61,11 +59,8 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 			},
 		},
 		{
-			name: "success - shorten URL with custom expiration",
-			requestBody: map[string]any{
-				"url": "https://google.com",
-				"exp": 3600,
-			},
+			name:        "success - shorten URL with custom expiration",
+			requestBody: fixture.DefaultShortenURLBody(fixture.WithFieldAny("url", "https://google.com")),
 			setupMockSvc: func(ctx *gin.Context) *mocks.ShortenUrl {
 				svcMock := mocks.NewShortenUrl(t)
 				svcMock.On("ShortenUrl",
@@ -82,10 +77,8 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 			},
 		},
 		{
-			name: "bad request - missing URL",
-			requestBody: map[string]any{
-				"exp": 3600,
-			},
+			name:        "bad request - missing URL",
+			requestBody: fixture.DefaultShortenURLBody(fixture.WithFieldAny("url", nil)),
 			setupMockSvc: func(ctx *gin.Context) *mocks.ShortenUrl {
 				// No mock expectations set - request fails validation before reaching service layer.
 				return mocks.NewShortenUrl(t)
@@ -94,11 +87,8 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 			expectedBody:   nil,
 		},
 		{
-			name: "bad request - invalid URL format",
-			requestBody: map[string]any{
-				"url": "not-a-valid-url",
-				"exp": 3600,
-			},
+			name:        "bad request - invalid URL format",
+			requestBody: fixture.DefaultShortenURLBody(fixture.WithFieldAny("url", "not-a-valid-url")),
 			setupMockSvc: func(ctx *gin.Context) *mocks.ShortenUrl {
 				// No mock expectations set - request fails validation before reaching service layer.
 				return mocks.NewShortenUrl(t)
@@ -107,11 +97,8 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 			expectedBody:   nil,
 		},
 		{
-			name: "bad request - negative expiration",
-			requestBody: map[string]any{
-				"url": "https://example.com",
-				"exp": -100,
-			},
+			name:        "bad request - negative expiration",
+			requestBody: fixture.DefaultShortenURLBody(fixture.WithFieldAny("exp", -100)),
 			setupMockSvc: func(ctx *gin.Context) *mocks.ShortenUrl {
 				// No mock expectations set - request fails validation before reaching service layer.
 				return mocks.NewShortenUrl(t)
@@ -120,11 +107,8 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 			expectedBody:   nil,
 		},
 		{
-			name: "internal server error - service failure",
-			requestBody: map[string]any{
-				"url": "https://example.com",
-				"exp": 3600,
-			},
+			name:        "internal server error - service failure",
+			requestBody: fixture.DefaultShortenURLBody(),
 			setupMockSvc: func(ctx *gin.Context) *mocks.ShortenUrl {
 				svcMock := mocks.NewShortenUrl(t)
 				svcMock.On("ShortenUrl",

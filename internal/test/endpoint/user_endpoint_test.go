@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	jwtMocks "github.com/HadesHo3820/ebvn-golang-course/pkg/jwtutils/mocks"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
@@ -29,53 +30,50 @@ func TestUserEndpoint_Register(t *testing.T) {
 	}{
 		{
 			name: "success - register new user",
-			requestBody: map[string]string{
-				"username":     "newuser",
-				"password":     "Password1!",
-				"display_name": "New User",
-				"email":        "newuser@example.com",
-			},
+			requestBody: fixture.DefaultRegisterBody(
+				fixture.WithField("username", "newuser"),
+				fixture.WithField("display_name", "New User"),
+				fixture.WithField("email", "newuser@example.com"),
+			),
 			expectedStatus: http.StatusOK,
 			expectedFields: []string{"message", "data"},
 		},
 		{
 			name: "error - duplicate username",
-			requestBody: map[string]string{
-				"username":     "johnny.ho", // Already exists in fixture
-				"password":     "Password1!",
-				"display_name": "Johnny Ho",
-				"email":        "another@example.com",
-			},
+			requestBody: fixture.DefaultRegisterBody(
+				fixture.WithField("username", "johnny.ho"), // Already exists in fixture
+				fixture.WithField("display_name", "Johnny Ho"),
+				fixture.WithField("email", "another@example.com"),
+			),
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "error - invalid email format",
-			requestBody: map[string]string{
-				"username":     "validuser",
-				"password":     "Password1!",
-				"display_name": "Valid User",
-				"email":        "invalid-email",
-			},
+			requestBody: fixture.DefaultRegisterBody(
+				fixture.WithField("username", "validuser"),
+				fixture.WithField("display_name", "Valid User"),
+				fixture.WithField("email", "invalid-email"),
+			),
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "error - password too short",
-			requestBody: map[string]string{
-				"username":     "validuser",
-				"password":     "Pass1!",
-				"display_name": "Valid User",
-				"email":        "valid@example.com",
-			},
+			requestBody: fixture.DefaultRegisterBody(
+				fixture.WithField("username", "validuser"),
+				fixture.WithField("password", "Pass1!"),
+				fixture.WithField("display_name", "Valid User"),
+				fixture.WithField("email", "valid@example.com"),
+			),
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "error - password missing special character",
-			requestBody: map[string]string{
-				"username":     "validuser",
-				"password":     "Password123",
-				"display_name": "Valid User",
-				"email":        "valid@example.com",
-			},
+			requestBody: fixture.DefaultRegisterBody(
+				fixture.WithField("username", "validuser"),
+				fixture.WithField("password", "Password123"),
+				fixture.WithField("display_name", "Valid User"),
+				fixture.WithField("email", "valid@example.com"),
+			),
 			expectedStatus: http.StatusBadRequest,
 		},
 	}
@@ -123,20 +121,17 @@ func TestUserEndpoint_Login(t *testing.T) {
 		expectedToken  string
 	}{
 		{
-			name: "error - user not found",
-			requestBody: map[string]string{
-				"username": "nonexistent",
-				"password": "password123",
-			},
+			name:           "error - user not found",
+			requestBody:    fixture.DefaultLoginBody(fixture.WithField("username", "nonexistent")),
 			setupMock:      func(m *jwtMocks.JWTGenerator) {},
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name: "error - password too short",
-			requestBody: map[string]string{
-				"username": "johnny.ho",
-				"password": "short",
-			},
+			requestBody: fixture.DefaultLoginBody(
+				fixture.WithField("username", "johnny.ho"),
+				fixture.WithField("password", "short"),
+			),
 			setupMock:      func(m *jwtMocks.JWTGenerator) {},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -180,9 +175,7 @@ func TestUserEndpoint_GetSelfInfo(t *testing.T) {
 			name:      "success - get user profile",
 			authToken: "Bearer valid.jwt.token",
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := jwt.MapClaims{
-					"sub": "f47ac10b-58cc-4372-a567-0e02b2c3d479", // johnny.ho from fixture
-				}
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "f47ac10b-58cc-4372-a567-0e02b2c3d479")) // johnny.ho from fixture
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
@@ -192,9 +185,7 @@ func TestUserEndpoint_GetSelfInfo(t *testing.T) {
 			name:      "error - user not found",
 			authToken: "Bearer valid.jwt.token",
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := jwt.MapClaims{
-					"sub": "non-existent-user-id",
-				}
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "non-existent-user-id"))
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
@@ -245,30 +236,22 @@ func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name:      "success - update display name",
-			authToken: "Bearer valid.jwt.token",
-			requestBody: map[string]string{
-				"display_name": "Updated Name",
-			},
+			name:        "success - update display name",
+			authToken:   "Bearer valid.jwt.token",
+			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("email", "")),
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := jwt.MapClaims{
-					"sub": "f47ac10b-58cc-4372-a567-0e02b2c3d479", // johnny.ho from fixture
-				}
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "f47ac10b-58cc-4372-a567-0e02b2c3d479")) // johnny.ho from fixture
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
 			expectedStatus: http.StatusOK,
 		},
 		{
-			name:      "success - update email",
-			authToken: "Bearer valid.jwt.token",
-			requestBody: map[string]string{
-				"email": "updated@example.com",
-			},
+			name:        "success - update email",
+			authToken:   "Bearer valid.jwt.token",
+			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("display_name", "")),
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := jwt.MapClaims{
-					"sub": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-				}
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "f47ac10b-58cc-4372-a567-0e02b2c3d479"))
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
@@ -279,9 +262,7 @@ func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 			authToken:   "Bearer valid.jwt.token",
 			requestBody: map[string]string{},
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := jwt.MapClaims{
-					"sub": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-				}
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "f47ac10b-58cc-4372-a567-0e02b2c3d479"))
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
@@ -290,24 +271,21 @@ func TestUserEndpoint_UpdateSelfInfo(t *testing.T) {
 		{
 			name:      "error - invalid email format",
 			authToken: "Bearer valid.jwt.token",
-			requestBody: map[string]string{
-				"email": "invalid-email",
-			},
+			requestBody: fixture.DefaultUpdateUserBody(
+				fixture.WithField("display_name", ""),
+				fixture.WithField("email", "invalid-email"),
+			),
 			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
-				claims := jwt.MapClaims{
-					"sub": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-				}
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", "f47ac10b-58cc-4372-a567-0e02b2c3d479"))
 				m.On("ValidateToken", mock.Anything).Return(claims, nil)
 				return claims
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:      "error - missing authorization",
-			authToken: "",
-			requestBody: map[string]string{
-				"display_name": "Updated Name",
-			},
+			name:           "error - missing authorization",
+			authToken:      "",
+			requestBody:    fixture.DefaultUpdateUserBody(fixture.WithField("email", "")),
 			setupMock:      func(m *jwtMocks.JWTValidator) jwt.MapClaims { return nil },
 			expectedStatus: http.StatusUnauthorized,
 		},

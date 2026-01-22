@@ -7,6 +7,7 @@ import (
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
 	"github.com/gin-gonic/gin"
@@ -49,10 +50,7 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 			jwtClaims: jwt.MapClaims{
 				"sub": "test-user-id",
 			},
-			requestBody: map[string]string{
-				"display_name": "New Display Name",
-				"email":        "new@example.com",
-			},
+			requestBody: fixture.DefaultUpdateUserBody(),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
@@ -71,9 +69,7 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 			jwtClaims: jwt.MapClaims{
 				"sub": "test-user-id",
 			},
-			requestBody: map[string]string{
-				"display_name": "New Display Name",
-			},
+			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("email", "")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
@@ -92,9 +88,7 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 			jwtClaims: jwt.MapClaims{
 				"sub": "test-user-id",
 			},
-			requestBody: map[string]string{
-				"email": "new@example.com",
-			},
+			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("display_name", "")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
@@ -109,11 +103,9 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 			},
 		},
 		{
-			name:      "error - missing JWT claims",
-			jwtClaims: nil, // No claims set
-			requestBody: map[string]string{
-				"display_name": "New Display Name",
-			},
+			name:        "error - missing JWT claims",
+			jwtClaims:   nil, // No claims set
+			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("email", "")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				// Service should not be called when JWT is invalid
 				return mocks.NewUser(t)
@@ -147,9 +139,7 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 			jwtClaims: jwt.MapClaims{
 				"sub": "non-existent-id",
 			},
-			requestBody: map[string]string{
-				"display_name": "New Display Name",
-			},
+			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("email", "")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
@@ -168,9 +158,7 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 			jwtClaims: jwt.MapClaims{
 				"sub": "test-user-id",
 			},
-			requestBody: map[string]string{
-				"display_name": "New Display Name",
-			},
+			requestBody: fixture.DefaultUpdateUserBody(fixture.WithField("email", "")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("UpdateUser",
@@ -189,9 +177,10 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 			jwtClaims: jwt.MapClaims{
 				"sub": "test-user-id",
 			},
-			requestBody: map[string]string{
-				"email": "invalid-email",
-			},
+			requestBody: fixture.DefaultUpdateUserBody(
+				fixture.WithField("display_name", ""),
+				fixture.WithField("email", "invalid-email"),
+			),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				// Service should not be called when validation fails
 				return mocks.NewUser(t)

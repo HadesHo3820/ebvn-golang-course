@@ -8,6 +8,7 @@ import (
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service/mocks"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
 	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
 	"github.com/gin-gonic/gin"
@@ -43,13 +44,8 @@ func TestUserHandler_Register(t *testing.T) {
 		expectedBody   map[string]any
 	}{
 		{
-			name: "success - register user",
-			requestBody: map[string]string{
-				"username":     "testuser",
-				"password":     "Password1!",
-				"display_name": "Test User",
-				"email":        "test@example.com",
-			},
+			name:        "success - register user",
+			requestBody: fixture.DefaultRegisterBody(),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				// mock.Anything for gin.Context since it implements context.Context
@@ -79,12 +75,11 @@ func TestUserHandler_Register(t *testing.T) {
 		},
 		{
 			name: "error - duplicate username or email",
-			requestBody: map[string]string{
-				"username":     "existinguser",
-				"password":     "Password1!",
-				"display_name": "Existing User",
-				"email":        "existing@example.com",
-			},
+			requestBody: fixture.DefaultRegisterBody(
+				fixture.WithField("username", "existinguser"),
+				fixture.WithField("display_name", "Existing User"),
+				fixture.WithField("email", "existing@example.com"),
+			),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("CreateUser",
@@ -99,13 +94,8 @@ func TestUserHandler_Register(t *testing.T) {
 			},
 		},
 		{
-			name: "error - internal server error",
-			requestBody: map[string]string{
-				"username":     "testuser",
-				"password":     "Password1!",
-				"display_name": "Test User",
-				"email":        "test@example.com",
-			},
+			name:        "error - internal server error",
+			requestBody: fixture.DefaultRegisterBody(),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				svcMock := mocks.NewUser(t)
 				svcMock.On("CreateUser",
@@ -120,12 +110,8 @@ func TestUserHandler_Register(t *testing.T) {
 			},
 		},
 		{
-			name: "error - missing username",
-			requestBody: map[string]string{
-				"password":     "Password1!",
-				"display_name": "Test User",
-				"email":        "test@example.com",
-			},
+			name:        "error - missing username",
+			requestBody: fixture.DefaultRegisterBody(fixture.WithField("username", "")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				// Service should not be called when validation fails
 				return mocks.NewUser(t)
@@ -134,13 +120,8 @@ func TestUserHandler_Register(t *testing.T) {
 			expectedBody:   nil, // Just check status code for validation errors
 		},
 		{
-			name: "error - invalid email format",
-			requestBody: map[string]string{
-				"username":     "testuser",
-				"password":     "Password1!",
-				"display_name": "Test User",
-				"email":        "invalid-email",
-			},
+			name:        "error - invalid email format",
+			requestBody: fixture.DefaultRegisterBody(fixture.WithField("email", "invalid-email")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				// Service should not be called when validation fails
 				return mocks.NewUser(t)
@@ -149,13 +130,8 @@ func TestUserHandler_Register(t *testing.T) {
 			expectedBody:   nil, // Just check status code for validation errors
 		},
 		{
-			name: "error - password too short",
-			requestBody: map[string]string{
-				"username":     "testuser",
-				"password":     "Pass1!",
-				"display_name": "Test User",
-				"email":        "test@example.com",
-			},
+			name:        "error - password too short",
+			requestBody: fixture.DefaultRegisterBody(fixture.WithField("password", "Pass1!")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				// Service should not be called when validation fails
 				return mocks.NewUser(t)
@@ -164,13 +140,8 @@ func TestUserHandler_Register(t *testing.T) {
 			expectedBody:   nil, // Just check status code for validation errors
 		},
 		{
-			name: "error - username too short",
-			requestBody: map[string]string{
-				"username":     "a",
-				"password":     "Password1!",
-				"display_name": "Test User",
-				"email":        "test@example.com",
-			},
+			name:        "error - username too short",
+			requestBody: fixture.DefaultRegisterBody(fixture.WithField("username", "a")),
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				// Service should not be called when validation fails
 				return mocks.NewUser(t)
@@ -179,13 +150,8 @@ func TestUserHandler_Register(t *testing.T) {
 			expectedBody:   nil, // Just check status code for validation errors
 		},
 		{
-			name: "error - password missing special character",
-			requestBody: map[string]string{
-				"username":     "testuser",
-				"password":     "Password123", // No special character
-				"display_name": "Test User",
-				"email":        "test@example.com",
-			},
+			name:        "error - password missing special character",
+			requestBody: fixture.DefaultRegisterBody(fixture.WithField("password", "Password123")), // No special character
 			setupMockSvc: func(t *testing.T, ctx context.Context) *mocks.User {
 				// Service should not be called when password validation fails
 				return mocks.NewUser(t)
