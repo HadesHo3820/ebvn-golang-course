@@ -16,6 +16,24 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+const (
+	// Test user constants
+	testUserUsername    = "testuser"
+	testUserDisplayName = "Test User"
+	testUserEmail       = "test@example.com"
+	testUserID          = "test-uuid"
+
+	// Existing user constants
+	existingUserUsername    = "existinguser"
+	existingUserDisplayName = "Existing User"
+	existingUserEmail       = "existing@example.com"
+	existingUserID          = "existing-user-id"
+
+	// New user constants (for update)
+	newUserDisplayName = "New Name"
+	newUserEmail       = "new@example.com"
+)
+
 // TestUser_CreateUser tests the CreateUser method of the User service.
 // It uses table-driven tests with mocked repository to verify:
 //   - Successful user creation with hashed password
@@ -35,10 +53,10 @@ func TestUser_CreateUser(t *testing.T) {
 	}{
 		{
 			name:          "success - create user",
-			inputUsername: "testuser",
+			inputUsername: testUserUsername,
 			inputPassword: "password123",
-			inputDisplay:  "Test User",
-			inputEmail:    "test@example.com",
+			inputDisplay:  testUserDisplayName,
+			inputEmail:    testUserEmail,
 			setupMock: func(mockRepo *repoMocks.User, ctx context.Context) {
 				// mock.MatchedBy is a custom argument matcher from testify/mock.
 				// It accepts a function that returns true if the argument matches expectations.
@@ -55,30 +73,30 @@ func TestUser_CreateUser(t *testing.T) {
 				// mock.MatchedBy ensures the service correctly transforms the input
 				// (especially password hashing) before calling the repository
 				mockRepo.On("CreateUser", ctx, mock.MatchedBy(func(u *model.User) bool {
-					return u.Username == "testuser" &&
-						u.DisplayName == "Test User" &&
-						u.Email == "test@example.com" &&
+					return u.Username == testUserUsername &&
+						u.DisplayName == testUserDisplayName &&
+						u.Email == testUserEmail &&
 						utils.VerifyPassword("password123", u.Password)
 				})).Return(&model.User{
-					ID:          "test-uuid",
-					Username:    "testuser",
-					DisplayName: "Test User",
-					Email:       "test@example.com",
+					ID:          testUserID,
+					Username:    testUserUsername,
+					DisplayName: testUserDisplayName,
+					Email:       testUserEmail,
 				}, nil)
 			},
 			expectedOutput: &model.User{
 				ID:          "test-uuid",
-				Username:    "testuser",
-				DisplayName: "Test User",
-				Email:       "test@example.com",
+				Username:    testUserUsername,
+				DisplayName: testUserDisplayName,
+				Email:       testUserEmail,
 			},
 		},
 		{
 			name:          "error - duplicate user",
-			inputUsername: "existinguser",
+			inputUsername: existingUserUsername,
 			inputPassword: "password123",
-			inputDisplay:  "Existing User",
-			inputEmail:    "existing@example.com",
+			inputDisplay:  existingUserDisplayName,
+			inputEmail:    existingUserEmail,
 			setupMock: func(mockRepo *repoMocks.User, ctx context.Context) {
 				mockRepo.On("CreateUser", ctx, mock.Anything).Return(nil, dbutils.ErrDuplicationType)
 			},
@@ -140,16 +158,16 @@ func TestUser_Login(t *testing.T) {
 	}{
 		{
 			name:          "success - valid login",
-			inputUsername: "testuser",
+			inputUsername: testUserUsername,
 			inputPassword: "correctpassword",
 			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator) {
-				mockRepo.On("GetUserByUsername", ctx, "testuser").Return(&model.User{
-					ID:       "user-uuid",
+				mockRepo.On("GetUserByUsername", ctx, testUserUsername).Return(&model.User{
+					ID:       testUserID,
 					Username: "testuser",
 					Password: hashedPassword,
 				}, nil)
 				mockJWT.On("GenerateToken", mock.MatchedBy(func(claims jwt.MapClaims) bool {
-					return claims["sub"] == "user-uuid"
+					return claims["sub"] == testUserID
 				})).Return("valid.jwt.token", nil)
 			},
 			expectedToken: "valid.jwt.token",
@@ -165,11 +183,11 @@ func TestUser_Login(t *testing.T) {
 		},
 		{
 			name:          "error - invalid password",
-			inputUsername: "testuser",
+			inputUsername: testUserUsername,
 			inputPassword: "wrongpassword",
 			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator) {
 				mockRepo.On("GetUserByUsername", ctx, "testuser").Return(&model.User{
-					ID:       "user-uuid",
+					ID:       testUserID,
 					Username: "testuser",
 					Password: hashedPassword,
 				}, nil)
@@ -178,11 +196,11 @@ func TestUser_Login(t *testing.T) {
 		},
 		{
 			name:          "error - JWT generation fails",
-			inputUsername: "testuser",
+			inputUsername: testUserUsername,
 			inputPassword: "correctpassword",
 			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator) {
 				mockRepo.On("GetUserByUsername", ctx, "testuser").Return(&model.User{
-					ID:       "user-uuid",
+					ID:       testUserID,
 					Username: "testuser",
 					Password: hashedPassword,
 				}, nil)
@@ -239,10 +257,10 @@ func TestUser_GetUserByID(t *testing.T) {
 	}{
 		{
 			name:        "success - user found",
-			inputUserID: "existing-user-id",
+			inputUserID: existingUserID,
 			setupMock: func(mockRepo *repoMocks.User, ctx context.Context) {
-				mockRepo.On("GetUserById", ctx, "existing-user-id").Return(&model.User{
-					ID:          "existing-user-id",
+				mockRepo.On("GetUserById", ctx, existingUserID).Return(&model.User{
+					ID:          existingUserID,
 					Username:    "testuser",
 					DisplayName: "Test User",
 					Email:       "test@example.com",
@@ -251,10 +269,10 @@ func TestUser_GetUserByID(t *testing.T) {
 				}, nil)
 			},
 			expectedOutput: &model.User{
-				ID:          "existing-user-id",
-				Username:    "testuser",
-				DisplayName: "Test User",
-				Email:       "test@example.com",
+				ID:          existingUserID,
+				Username:    testUserUsername,
+				DisplayName: testUserDisplayName,
+				Email:       testUserEmail,
 				CreatedAt:   fixedTime,
 				UpdatedAt:   fixedTime,
 			},
@@ -316,46 +334,47 @@ func TestUser_UpdateUser(t *testing.T) {
 	}{
 		{
 			name:             "success - update both fields",
-			inputUserID:      "user-uuid",
-			inputDisplayName: "New Name",
-			inputEmail:       "new@example.com",
+			inputUserID:      testUserID,
+			inputDisplayName: newUserDisplayName,
+			inputEmail:       newUserEmail,
 			setupMock: func(mockRepo *repoMocks.User, ctx context.Context) {
-				mockRepo.On("UpdateUser", ctx, "user-uuid", "New Name", "new@example.com").Return(nil)
+				mockRepo.On("UpdateUser", ctx, testUserID, newUserDisplayName, newUserEmail).Return(nil)
 			},
 		},
 		{
 			name:             "success - update display_name only",
-			inputUserID:      "user-uuid",
-			inputDisplayName: "New Name",
+			inputUserID:      testUserID,
+			inputDisplayName: newUserDisplayName,
 			inputEmail:       "",
 			setupMock: func(mockRepo *repoMocks.User, ctx context.Context) {
-				mockRepo.On("UpdateUser", ctx, "user-uuid", "New Name", "").Return(nil)
+				mockRepo.On("UpdateUser", ctx, testUserID, newUserDisplayName, "").Return(nil)
 			},
 		},
 		{
 			name:             "success - update email only",
-			inputUserID:      "user-uuid",
+			inputUserID:      testUserID,
 			inputDisplayName: "",
-			inputEmail:       "new@example.com",
+			inputEmail:       newUserEmail,
 			setupMock: func(mockRepo *repoMocks.User, ctx context.Context) {
-				mockRepo.On("UpdateUser", ctx, "user-uuid", "", "new@example.com").Return(nil)
+				mockRepo.On("UpdateUser", ctx, testUserID, "", newUserEmail).Return(nil)
 			},
 		},
 		{
 			name:             "error - no fields provided",
-			inputUserID:      "user-uuid",
+			inputUserID:      testUserID,
 			inputDisplayName: "",
 			inputEmail:       "",
-			setupMock:        func(mockRepo *repoMocks.User, ctx context.Context) {},
-			expectedErr:      ErrClientNoUpdate,
+			// Do not pass fields requirements validation, so the call to UpdateUser should not be made
+			setupMock:   func(mockRepo *repoMocks.User, ctx context.Context) {},
+			expectedErr: ErrClientNoUpdate,
 		},
 		{
 			name:             "error - duplicate email",
-			inputUserID:      "user-uuid",
+			inputUserID:      testUserID,
 			inputDisplayName: "",
-			inputEmail:       "existing@example.com",
+			inputEmail:       existingUserEmail,
 			setupMock: func(mockRepo *repoMocks.User, ctx context.Context) {
-				mockRepo.On("UpdateUser", ctx, "user-uuid", "", "existing@example.com").Return(dbutils.ErrDuplicationType)
+				mockRepo.On("UpdateUser", ctx, testUserID, "", existingUserEmail).Return(dbutils.ErrDuplicationType)
 			},
 			expectedErr: dbutils.ErrDuplicationType,
 		},
