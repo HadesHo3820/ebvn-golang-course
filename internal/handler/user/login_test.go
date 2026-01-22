@@ -150,7 +150,7 @@ func TestUserHandler_Login(t *testing.T) {
 			t.Parallel()
 
 			// Create test context with JSON body using helper
-			testCtx := handlertest.NewTestContext(http.MethodPost, "v1/users/login").
+			testCtx := handlertest.NewTestContext(http.MethodPost, "/v1/users/login").
 				WithJSONBody(tc.requestBody)
 
 			// Setup mock service
