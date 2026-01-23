@@ -6,41 +6,86 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHashPassword(t *testing.T) {
+func TestPasswordHashing_Hash(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success - hash password", func(t *testing.T) {
-		t.Parallel()
-		password := "mysecretpassword"
-		hash, err := HashPassword(password)
+	passwordHashing := NewPasswordHashing()
 
-		assert.NoError(t, err)
-		assert.NotEmpty(t, hash)
-		assert.NotEqual(t, password, hash)
-	})
+	testCases := []struct {
+		name string
+
+		inputPassword string
+
+		expectedHashedPassword string
+		expectedError          error
+	}{
+		{
+			name: "Hash password successfully",
+
+			inputPassword: "my_secure_password",
+
+			expectedError: nil,
+		},
+		{
+			name: "Hash too long password",
+
+			inputPassword: "this_password_is_way_too_long_and_should_trigger_an_error_because_it_exceeds_the_maximum_length_allowed_by_bcrypt_which_is_72_bytes",
+
+			expectedError: ErrCannotGenerateHash,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			hashedPassword, err := passwordHashing.Hash(tc.inputPassword)
+			assert.Equal(t, tc.expectedError, err)
+			if err == nil {
+				assert.NotEmpty(t, hashedPassword)
+			}
+		})
+	}
 }
 
-func TestVerifyPassword(t *testing.T) {
+func TestPasswordHashing_CompareHashAndPassword(t *testing.T) {
 	t.Parallel()
 
-	password := "mysecretpassword"
-	hash, _ := HashPassword(password)
+	testCases := []struct {
+		name string
 
-	t.Run("success - correct password", func(t *testing.T) {
-		t.Parallel()
-		valid := VerifyPassword(password, hash)
-		assert.True(t, valid)
-	})
+		inputPassword       string
+		inputHashedPassword string
 
-	t.Run("success - incorrect password", func(t *testing.T) {
-		t.Parallel()
-		valid := VerifyPassword("wrongpassword", hash)
-		assert.False(t, valid)
-	})
+		expectedMatch bool
+	}{
+		{
+			name: "Password matches hash",
 
-	t.Run("success - invalid hash", func(t *testing.T) {
-		t.Parallel()
-		valid := VerifyPassword(password, "invalidhash")
-		assert.False(t, valid)
-	})
+			inputPassword:       "my_secure_password",
+			inputHashedPassword: "$2a$10$yIIizEHMEKSm.OARDrSjHe4otTolPuCjjEy6IQ3RtRny3ZB7ToN.e", // Hash for "my_secure_password"
+
+			expectedMatch: true,
+		},
+		{
+			name: "Password does not match hash",
+
+			inputPassword:       "wrong_password",
+			inputHashedPassword: "$2a$10$yIIizEHMEKSm.OARDrSjHe4otTolPuCjjEy6IQ3RtRny3ZB7ToN.e", // Hash for "my_secure_password"
+
+			expectedMatch: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			passwordHashing := NewPasswordHashing()
+
+			match := passwordHashing.CompareHashAndPassword(tc.inputHashedPassword, tc.inputPassword)
+
+			assert.Equal(t, tc.expectedMatch, match)
+		})
+	}
 }

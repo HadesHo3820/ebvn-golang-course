@@ -11,6 +11,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
 	jwtMocks "github.com/HadesHo3820/ebvn-golang-course/pkg/jwtutils/mocks"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/utils"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/utils/mocks"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -22,6 +23,7 @@ const (
 	testUserDisplayName = "Test User"
 	testUserEmail       = "test@example.com"
 	testUserID          = "test-uuid"
+	testHashedPassword  = "$2a$10$7EqJtq98hPqEX7fNZaFWoOHi6rS8nY7b1p6K5j5p6v5Q5Z5Z5Z5e"
 
 	// Existing user constants
 	existingUserUsername    = "existinguser"
@@ -42,42 +44,34 @@ func TestUser_CreateUser(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name           string
-		inputUsername  string
-		inputPassword  string
-		inputDisplay   string
-		inputEmail     string
-		setupMock      func(mockRepo *repoMocks.User, ctx context.Context)
-		expectedErr    error
-		expectedOutput *model.User
+		name                     string
+		setupMockPasswordHashing func(t *testing.T) *mocks.PasswordHashing
+		inputUsername            string
+		inputPassword            string
+		inputDisplay             string
+		inputEmail               string
+		setupMock                func(mockRepo *repoMocks.User, ctx context.Context)
+		expectedErr              error
+		expectedOutput           *model.User
 	}{
 		{
-			name:          "success - create user",
+			name: "success - create user",
+			setupMockPasswordHashing: func(t *testing.T) *mocks.PasswordHashing {
+				hashingMock := mocks.NewPasswordHashing(t)
+				hashingMock.On("Hash", "password123").Return(testHashedPassword, nil)
+				return hashingMock
+			},
 			inputUsername: testUserUsername,
 			inputPassword: "password123",
 			inputDisplay:  testUserDisplayName,
 			inputEmail:    testUserEmail,
 			setupMock: func(mockRepo *repoMocks.User, ctx context.Context) {
-				// mock.MatchedBy is a custom argument matcher from testify/mock.
-				// It accepts a function that returns true if the argument matches expectations.
-				// This is useful when:
-				//   1. The argument is a complex struct that can't be compared with simple equality
-				//   2. Some fields (like Password) are transformed before being passed to the mock
-				//   3. You need to verify specific properties of an argument
-				//
-				// Here we verify:
-				//   - Username, DisplayName, Email match the expected values
-				//   - Password was correctly hashed (using VerifyPassword to check
-				//     that the plain-text password matches the hash)
-
-				// mock.MatchedBy ensures the service correctly transforms the input
-				// (especially password hashing) before calling the repository
-				mockRepo.On("CreateUser", ctx, mock.MatchedBy(func(u *model.User) bool {
-					return u.Username == testUserUsername &&
-						u.DisplayName == testUserDisplayName &&
-						u.Email == testUserEmail &&
-						utils.VerifyPassword("password123", u.Password)
-				})).Return(&model.User{
+				mockRepo.On("CreateUser", ctx, &model.User{
+					Username:    testUserUsername,
+					Password:    testHashedPassword,
+					DisplayName: testUserDisplayName,
+					Email:       testUserEmail,
+				}).Return(&model.User{
 					ID:          testUserID,
 					Username:    testUserUsername,
 					DisplayName: testUserDisplayName,
@@ -92,7 +86,12 @@ func TestUser_CreateUser(t *testing.T) {
 			},
 		},
 		{
-			name:          "error - duplicate user",
+			name: "error - duplicate user",
+			setupMockPasswordHashing: func(t *testing.T) *mocks.PasswordHashing {
+				hashingMock := mocks.NewPasswordHashing(t)
+				hashingMock.On("Hash", "password123").Return(testHashedPassword, nil)
+				return hashingMock
+			},
 			inputUsername: existingUserUsername,
 			inputPassword: "password123",
 			inputDisplay:  existingUserDisplayName,
@@ -101,6 +100,22 @@ func TestUser_CreateUser(t *testing.T) {
 				mockRepo.On("CreateUser", ctx, mock.Anything).Return(nil, dbutils.ErrDuplicationType)
 			},
 			expectedErr: dbutils.ErrDuplicationType,
+		},
+		{
+			name: "error - password hashing fails",
+			setupMockPasswordHashing: func(t *testing.T) *mocks.PasswordHashing {
+				hashingMock := mocks.NewPasswordHashing(t)
+				hashingMock.On("Hash", "password123").Return("", utils.ErrCannotGenerateHash)
+				return hashingMock
+			},
+			inputUsername: testUserUsername,
+			inputPassword: "password123",
+			inputDisplay:  testUserDisplayName,
+			inputEmail:    testUserEmail,
+			setupMock: func(mockRepo *repoMocks.User, ctx context.Context) {
+				// No repo mock needed - should fail before reaching repo
+			},
+			expectedErr: utils.ErrCannotGenerateHash,
 		},
 	}
 
@@ -113,9 +128,10 @@ func TestUser_CreateUser(t *testing.T) {
 			mockRepo := repoMocks.NewUser(t)
 			mockJWT := jwtMocks.NewJWTGenerator(t)
 			tc.setupMock(mockRepo, ctx)
+			mockPasswordHashing := tc.setupMockPasswordHashing(t)
 
 			// Create service
-			svc := NewUser(mockRepo, mockJWT)
+			svc := NewUser(mockRepo, mockJWT, mockPasswordHashing)
 
 			// Execute
 			output, err := svc.CreateUser(ctx, tc.inputUsername, tc.inputPassword, tc.inputDisplay, tc.inputEmail)
@@ -146,13 +162,14 @@ func TestUser_Login(t *testing.T) {
 	t.Parallel()
 
 	// Pre-hash a password for testing
-	hashedPassword, _ := utils.HashPassword("correctpassword")
+	passwordHashing := utils.NewPasswordHashing()
+	hashedPassword, _ := passwordHashing.Hash("correctpassword")
 
 	testCases := []struct {
 		name          string
 		inputUsername string
 		inputPassword string
-		setupMock     func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator)
+		setupMock     func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator, mockPasswordHashing *mocks.PasswordHashing)
 		expectedErr   error
 		expectedToken string
 	}{
@@ -160,12 +177,13 @@ func TestUser_Login(t *testing.T) {
 			name:          "success - valid login",
 			inputUsername: testUserUsername,
 			inputPassword: "correctpassword",
-			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator) {
+			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator, mockPasswordHashing *mocks.PasswordHashing) {
 				mockRepo.On("GetUserByUsername", ctx, testUserUsername).Return(&model.User{
 					ID:       testUserID,
 					Username: "testuser",
 					Password: hashedPassword,
 				}, nil)
+				mockPasswordHashing.On("CompareHashAndPassword", hashedPassword, "correctpassword").Return(true)
 				mockJWT.On("GenerateToken", mock.MatchedBy(func(claims jwt.MapClaims) bool {
 					return claims["sub"] == testUserID
 				})).Return("valid.jwt.token", nil)
@@ -176,7 +194,7 @@ func TestUser_Login(t *testing.T) {
 			name:          "error - user not found",
 			inputUsername: "nonexistent",
 			inputPassword: "password",
-			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator) {
+			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator, mockPasswordHashing *mocks.PasswordHashing) {
 				mockRepo.On("GetUserByUsername", ctx, "nonexistent").Return(nil, dbutils.ErrNotFoundType)
 			},
 			expectedErr: dbutils.ErrNotFoundType,
@@ -185,12 +203,13 @@ func TestUser_Login(t *testing.T) {
 			name:          "error - invalid password",
 			inputUsername: testUserUsername,
 			inputPassword: "wrongpassword",
-			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator) {
+			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator, mockPasswordHashing *mocks.PasswordHashing) {
 				mockRepo.On("GetUserByUsername", ctx, "testuser").Return(&model.User{
 					ID:       testUserID,
 					Username: "testuser",
 					Password: hashedPassword,
 				}, nil)
+				mockPasswordHashing.On("CompareHashAndPassword", hashedPassword, "wrongpassword").Return(false)
 			},
 			expectedErr: ErrClientErr,
 		},
@@ -198,12 +217,13 @@ func TestUser_Login(t *testing.T) {
 			name:          "error - JWT generation fails",
 			inputUsername: testUserUsername,
 			inputPassword: "correctpassword",
-			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator) {
+			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator, mockPasswordHashing *mocks.PasswordHashing) {
 				mockRepo.On("GetUserByUsername", ctx, "testuser").Return(&model.User{
 					ID:       testUserID,
 					Username: "testuser",
 					Password: hashedPassword,
 				}, nil)
+				mockPasswordHashing.On("CompareHashAndPassword", hashedPassword, "correctpassword").Return(true)
 				mockJWT.On("GenerateToken", mock.Anything).Return("", errors.New("jwt error"))
 			},
 			expectedErr: errors.New("jwt error"),
@@ -218,10 +238,11 @@ func TestUser_Login(t *testing.T) {
 			// Setup mocks
 			mockRepo := repoMocks.NewUser(t)
 			mockJWT := jwtMocks.NewJWTGenerator(t)
-			tc.setupMock(ctx, mockRepo, mockJWT)
+			mockPasswordHashing := mocks.NewPasswordHashing(t)
+			tc.setupMock(ctx, mockRepo, mockJWT, mockPasswordHashing)
 
 			// Create service
-			svc := NewUser(mockRepo, mockJWT)
+			svc := NewUser(mockRepo, mockJWT, mockPasswordHashing)
 
 			// Execute
 			token, err := svc.Login(ctx, tc.inputUsername, tc.inputPassword)
@@ -292,13 +313,14 @@ func TestUser_GetUserByID(t *testing.T) {
 			t.Parallel()
 			ctx := context.Background()
 
-			// Setup mocks
+			//Setup mocks
 			mockRepo := repoMocks.NewUser(t)
 			mockJWT := jwtMocks.NewJWTGenerator(t)
+			mockPasswordHashing := mocks.NewPasswordHashing(t)
 			tc.setupMock(mockRepo, ctx)
 
 			// Create service
-			svc := NewUser(mockRepo, mockJWT)
+			svc := NewUser(mockRepo, mockJWT, mockPasswordHashing)
 
 			// Execute
 			output, err := svc.GetUserByID(ctx, tc.inputUserID)
@@ -388,10 +410,11 @@ func TestUser_UpdateUser(t *testing.T) {
 			// Setup mocks
 			mockRepo := repoMocks.NewUser(t)
 			mockJWT := jwtMocks.NewJWTGenerator(t)
+			mockPasswordHashing := mocks.NewPasswordHashing(t)
 			tc.setupMock(mockRepo, ctx)
 
 			// Create service
-			svc := NewUser(mockRepo, mockJWT)
+			svc := NewUser(mockRepo, mockJWT, mockPasswordHashing)
 
 			// Execute
 			err := svc.UpdateUser(ctx, tc.inputUserID, tc.inputDisplayName, tc.inputEmail)

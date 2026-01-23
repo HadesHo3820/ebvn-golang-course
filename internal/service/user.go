@@ -21,6 +21,7 @@ const (
 
 // User defines the interface for user-related business operations.
 // This abstraction allows for easy testing and swapping of implementations.
+//
 //go:generate mockery --name User --filename user.go
 type User interface {
 	// CreateUser registers a new user with the provided credentials and profile information.
@@ -33,8 +34,9 @@ type User interface {
 // user is the concrete implementation of the User interface.
 // It coordinates between the repository layer and applies business rules.
 type user struct {
-	repo   repository.User
-	jwtGen jwtutils.JWTGenerator
+	repo            repository.User
+	jwtGen          jwtutils.JWTGenerator
+	passwordHashing utils.PasswordHashing
 }
 
 // NewUser creates and returns a new User service instance.
@@ -45,8 +47,8 @@ type user struct {
 //
 // Returns:
 //   - User: An implementation of the User service interface
-func NewUser(repo repository.User, jwtGen jwtutils.JWTGenerator) User {
-	return &user{repo: repo, jwtGen: jwtGen}
+func NewUser(repo repository.User, jwtGen jwtutils.JWTGenerator, hash utils.PasswordHashing) User {
+	return &user{repo: repo, jwtGen: jwtGen, passwordHashing: hash}
 }
 
 // CreateUser handles user registration by hashing the password and persisting the user.
@@ -63,7 +65,7 @@ func NewUser(repo repository.User, jwtGen jwtutils.JWTGenerator) User {
 //   - *model.User: The created user with database-generated fields (e.g., ID)
 //   - error: An error if password hashing or database operation fails
 func (u *user) CreateUser(ctx context.Context, username, password, displayName, email string) (*model.User, error) {
-	hashPwd, err := utils.HashPassword(password)
+	hashPwd, err := u.passwordHashing.Hash(password)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +74,6 @@ func (u *user) CreateUser(ctx context.Context, username, password, displayName, 
 		Password:    hashPwd,
 		DisplayName: displayName,
 		Email:       email,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
 	}
 
 	res, err := u.repo.CreateUser(ctx, newUser)
@@ -96,7 +96,7 @@ func (u *user) Login(ctx context.Context, username, password string) (string, er
 	}
 
 	// check if password is valid
-	check := utils.VerifyPassword(password, chosenUser.Password)
+	check := u.passwordHashing.CompareHashAndPassword(chosenUser.Password, password)
 	if !check {
 		return "", ErrClientErr
 	}
