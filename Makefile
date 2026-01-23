@@ -182,6 +182,19 @@ clean:
 	rm -f myapp
 	go clean
 
+PRIVATE_KEY ?= ./private.pem
+PUBLIC_KEY ?= ./public.pem
+
+# generate-rsa-key: Generates RSA key pair for JWT token signing and verification.
+# Creates a 2048-bit RSA private key (private.pem) and extracts the public key (public.pem).
+# - private.pem: Used by the server to sign JWT tokens (keep secret!)
+# - public.pem: Used by clients/services to verify JWT token signatures
+# Usage: make generate-rsa-key PRIVATE_KEY=<path> PUBLIC_KEY=<path>
+# Example: make generate-rsa-key PRIVATE_KEY=./test/private_test.pem PUBLIC_KEY=./test/public_test.pem
+generate-rsa-key:
+	openssl genpkey -algorithm RSA -out $(PRIVATE_KEY) -pkeyopt rsa_keygen_bits:2048
+	openssl rsa -pubout -in $(PRIVATE_KEY) -out $(PUBLIC_KEY)
+
 # =============================================================================
 # DOCKER TARGETS
 # =============================================================================
@@ -290,3 +303,18 @@ DOCKER_HUB_PASSWORD ?=
 # -----------------------------------------------------------------------------
 docker-login:
 	echo "$(DOCKER_HUB_PASSWORD)" | docker login -u "$(DOCKER_HUB_USERNAME)" --password-stdin
+
+# -----------------------------------------------------------------------------
+# composeup-force: Start Docker Compose services with forced rebuild
+# -----------------------------------------------------------------------------
+# Starts all services defined in docker-compose.yml with forced image rebuild.
+#
+# Flags:
+#   --build  Force rebuild of images before starting containers
+#   -d       Run containers in detached mode (background)
+#
+# Usage: make compose-up-force
+# Note: Use this when you've made changes to Dockerfile or need fresh images
+# -----------------------------------------------------------------------------
+composeup-force:
+	docker compose up --build -d

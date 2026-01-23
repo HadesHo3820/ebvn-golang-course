@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
-	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,7 +65,10 @@ func TestPasswordEndpoint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			rec := tc.setupTestHTTP(api.New(&api.Config{}, redisPkg.InitMockRedis(t), nil))
+			rec := tc.setupTestHTTP(api.New(&api.EngineOpts{
+				Engine: gin.New(),
+				Cfg:    &api.Config{},
+			}))
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
 			assert.Equal(t, tc.expectedRespLen, len(rec.Body.String()))

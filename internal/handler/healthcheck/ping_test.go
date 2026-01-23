@@ -2,7 +2,7 @@
 //
 // This file contains tests for the healthCheckHandler, using mocks to isolate
 // the handler from its service dependencies and verify HTTP response behavior.
-package handler
+package healthcheck
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestHealthCheckHandler_Check validates the Check method of the healthCheckHandler.
+// TestHealthCheckHandler_Ping validates the Ping method of the healthCheckHandler.
 //
 // This test uses a table-driven approach with the following testing patterns:
 //   - Mock injection: Uses mockery-generated mocks to isolate the handler from the service layer
@@ -27,7 +27,7 @@ import (
 //   - Verifying correct HTTP 200 status when healthy
 //   - Verifying correct HTTP 503 status when dependency is unhealthy
 //   - Validating JSON response body structure and content
-func TestHealthCheckHandler_Check(t *testing.T) {
+func TestHealthCheckHandler_Ping(t *testing.T) {
 	t.Parallel()
 
 	// Set Gin to test mode to reduce noise in test output
@@ -87,10 +87,10 @@ func TestHealthCheckHandler_Check(t *testing.T) {
 			svcMock := tc.setupMockSvc(t, gctx)
 
 			// Create the handler with the mock service
-			handler := NewHealthCheck(svcMock)
+			handler := NewHealthCheckHandler(svcMock)
 
 			// Call the handler
-			handler.Check(gctx)
+			handler.Ping(gctx)
 
 			// Check the response and status code
 			assert.Equal(t, tc.expectedStatus, rec.Code)

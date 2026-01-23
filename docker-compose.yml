@@ -30,7 +30,6 @@ services:       # Define all containers (services) that make up the application
     
     container_name: redis_cache            # Custom container name (default: <project>_<service>_1)
     
-    
     volumes:                               # Named volume: Persists Redis data across container restarts
       - redis_data:/data                   # Maps container's /data directory to 'redis_data' volume
 
@@ -51,12 +50,53 @@ services:       # Define all containers (services) that make up the application
       - REDIS_ADDR=redis_db:6379           # Environment variable passed to container
                                            # 'redis_db' is the DNS name (service name) that Docker resolves
                                            # to the Redis container's IP within the network
-    depends_on:          
-      - redis_db                           # Start order: redis_db starts BEFORE bookmark_service
-                                           # This only waits for container start, NOT for Redis
+      - DB_HOST=postgres                   # PostgreSQL host: use service name for Docker networking
+    depends_on:
+      redis_db:
+        condition: service_started # Wait for redis_db container to start
+      postgres:
+        condition: service_healthy # Wait for postgres to be HEALTHY (not just started)
     networks:
       - my-network
+    # volumes: Mounts RSA key pair files for JWT authentication
+    # - public.pem: Used to verify JWT token signatures (shared with other services if needed)
+    # - private.pem: Used to sign JWT tokens during login (keep secure, never expose)
+    # The :Z suffix is an SELinux label that allows the container to access the files
+    # on systems with SELinux enabled (e.g., RHEL, CentOS, Fedora)
+    # Generate these keys using: make generate-rsa-key
+    volumes:
+      - ./public.pem:/app/public.pem:Z
+      - ./private.pem:/app/private.pem:Z
 
+  # --- Service 3: PostgreSQL Database ---
+  postgres:
+    image: postgres:18-alpine # Official PostgreSQL image (Alpine = smaller size)
+
+    container_name: postgres # Custom container name for easy reference
+
+    ports:
+      - "5432:5432"
+        # Port mapping: HOST_PORT:CONTAINER_PORT
+        # Allows external tools (pgAdmin, DBeaver) to connect
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+        # Named volume: Persists database files
+        # Data survives container restarts and removals
+    environment:
+      # PostgreSQL initialization environment variables
+      - POSTGRES_USER=admin # Superuser username (default: postgres)
+      - POSTGRES_PASSWORD=admin # Superuser password (required for non-trust auth)
+      - POSTGRES_DB=bookmark_db # Database created on first startup
+
+    healthcheck:
+      # pg_isready checks if PostgreSQL is ready to accept connections
+      test: [ "CMD-SHELL", "pg_isready -U admin -d bookmark_db" ]
+      interval: 5s # Check every 5 seconds
+      timeout: 5s # Timeout after 5 seconds
+      retries: 5 # Retry up to 5 times before marking unhealthy
+
+    networks:
+      - my-network # Allows other services to connect via 'postgres:5432'
 
 # =============================================================================
 # Networks Configuration
@@ -78,3 +118,4 @@ networks:
 # Data location: /var/lib/docker/volumes/<volume_name>/_data (on Docker host)
 volumes:
   redis_data:
+  postgres_data:
