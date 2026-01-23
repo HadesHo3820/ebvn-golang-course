@@ -7,6 +7,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/common"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/logger"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -45,15 +46,19 @@ func CreateAPI() api.Engine {
 	// Init jwt gen and validator
 	jwtGen, jwtValidator := CreateJWTProvider()
 
+	// Init password hashing
+	passwordHashing := utils.NewPasswordHashing()
+
 	app := gin.New()
 
 	return api.New(&api.EngineOpts{
-		Engine:       app,
-		Cfg:          cfg,
-		RedisClient:  redisClient,
-		SqlDB:        sqlDB,
-		KeyGen:       keyGen,
-		JwtGen:       jwtGen,
-		JwtValidator: jwtValidator,
+		Engine:          app,
+		Cfg:             cfg,
+		RedisClient:     redisClient,
+		SqlDB:           sqlDB,
+		KeyGen:          keyGen,
+		PasswordHashing: passwordHashing,
+		JwtGen:          jwtGen,
+		JwtValidator:    jwtValidator,
 	})
 }

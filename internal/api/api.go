@@ -17,6 +17,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/jwtutils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
@@ -36,23 +37,25 @@ type Engine interface {
 // api is the concrete implementation of the Engine interface.
 // It wraps a Gin engine and manages the application's HTTP routing.
 type api struct {
-	app          *gin.Engine
-	cfg          *Config
-	redisClient  *redis.Client
-	db           *gorm.DB
-	keyGen       stringutils.KeyGenerator
-	jwtGen       jwtutils.JWTGenerator
-	jwtValidator jwtutils.JWTValidator
+	app             *gin.Engine
+	cfg             *Config
+	redisClient     *redis.Client
+	db              *gorm.DB
+	keyGen          stringutils.KeyGenerator
+	passwordHashing utils.PasswordHashing
+	jwtGen          jwtutils.JWTGenerator
+	jwtValidator    jwtutils.JWTValidator
 }
 
 type EngineOpts struct {
-	Engine       *gin.Engine
-	Cfg          *Config
-	RedisClient  *redis.Client
-	SqlDB        *gorm.DB
-	KeyGen       stringutils.KeyGenerator
-	JwtGen       jwtutils.JWTGenerator
-	JwtValidator jwtutils.JWTValidator
+	Engine          *gin.Engine
+	Cfg             *Config
+	RedisClient     *redis.Client
+	SqlDB           *gorm.DB
+	KeyGen          stringutils.KeyGenerator
+	PasswordHashing utils.PasswordHashing
+	JwtGen          jwtutils.JWTGenerator
+	JwtValidator    jwtutils.JWTValidator
 }
 
 // New creates and initializes a new API server.
@@ -60,13 +63,14 @@ type EngineOpts struct {
 // Returns an Engine interface to hide the implementation details.
 func New(opts *EngineOpts) Engine {
 	a := &api{
-		app:          opts.Engine,
-		cfg:          opts.Cfg,
-		redisClient:  opts.RedisClient,
-		keyGen:       opts.KeyGen,
-		db:           opts.SqlDB,
-		jwtGen:       opts.JwtGen,
-		jwtValidator: opts.JwtValidator,
+		app:             opts.Engine,
+		cfg:             opts.Cfg,
+		redisClient:     opts.RedisClient,
+		keyGen:          opts.KeyGen,
+		passwordHashing: opts.PasswordHashing,
+		db:              opts.SqlDB,
+		jwtGen:          opts.JwtGen,
+		jwtValidator:    opts.JwtValidator,
 	}
 	a.RegisterEP()
 	return a
@@ -121,7 +125,7 @@ func (a *api) initHandlers() *handlers {
 
 	// Create user service with PostgreSQL repository
 	userRepo := repository.NewUser(a.db)
-	userSvc := service.NewUser(userRepo, a.jwtGen)
+	userSvc := service.NewUser(userRepo, a.jwtGen, a.passwordHashing)
 
 	return &handlers{
 		healthCheckHandler: healthcheck.NewHealthCheckHandler(healthSvc),

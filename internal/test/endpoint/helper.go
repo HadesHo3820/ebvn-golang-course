@@ -8,6 +8,8 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/jwtutils"
 	jwtMocks "github.com/HadesHo3820/ebvn-golang-course/pkg/jwtutils/mocks"
 	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
+	"github.com/HadesHo3820/ebvn-golang-course/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -98,12 +100,14 @@ func NewTestEngine(opts *TestEngineOpts) *TestEngine {
 
 	// Create API engine with dependencies
 	engine := api.New(&api.EngineOpts{
-		Engine:       gin.New(),
-		Cfg:          cfg,
-		RedisClient:  redisPkg.InitMockRedis(opts.T),
-		SqlDB:        db,
-		JwtGen:       jwtGen,
-		JwtValidator: jwtValidator,
+		Engine:          gin.New(),
+		Cfg:             cfg,
+		RedisClient:     redisPkg.InitMockRedis(opts.T),
+		SqlDB:           db,
+		KeyGen:          stringutils.NewKeyGenerator(),
+		PasswordHashing: utils.NewPasswordHashing(),
+		JwtGen:          jwtGen,
+		JwtValidator:    jwtValidator,
 	})
 
 	return &TestEngine{
