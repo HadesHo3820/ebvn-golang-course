@@ -83,11 +83,26 @@ func (u *user) CreateUser(ctx context.Context, username, password, displayName, 
 	return res, nil
 }
 
+// Common service-level errors returned by user operations.
 var (
-	ErrClientErr      = errors.New("invalid username or password")
+	// ErrClientErr is returned when login credentials are invalid.
+	ErrClientErr = errors.New("invalid username or password")
+
+	// ErrClientNoUpdate is returned when UpdateUser is called with no fields to update.
 	ErrClientNoUpdate = errors.New("no update")
 )
 
+// Login authenticates a user and returns a JWT token.
+// It verifies the username exists and the password is correct before generating a token.
+//
+// Parameters:
+//   - ctx: Context for request cancellation and deadline control
+//   - username: The username to authenticate
+//   - password: The plain-text password to verify
+//
+// Returns:
+//   - string: A JWT token valid for 24 hours if authentication succeeds
+//   - error: ErrClientErr if credentials are invalid, or other errors from repo/JWT generation
 func (u *user) Login(ctx context.Context, username, password string) (string, error) {
 	// check if user exist
 	chosenUser, err := u.repo.GetUserByUsername(ctx, username)
@@ -116,10 +131,30 @@ func (u *user) Login(ctx context.Context, username, password string) (string, er
 	return token, nil
 }
 
+// GetUserByID retrieves a user's details by their unique ID.
+//
+// Parameters:
+//   - ctx: Context for request cancellation and deadline control
+//   - userId: The unique identifier of the user to retrieve
+//
+// Returns:
+//   - *model.User: The user's profile information
+//   - error: An error if the user is not found or database operation fails
 func (u *user) GetUserByID(ctx context.Context, userId string) (*model.User, error) {
 	return u.repo.GetUserById(ctx, userId)
 }
 
+// UpdateUser updates a user's profile information.
+// At least one field (displayName or email) must be provided.
+//
+// Parameters:
+//   - ctx: Context for request cancellation and deadline control
+//   - userID: The unique identifier of the user to update
+//   - displayName: New display name (empty string means no update)
+//   - email: New email address (empty string means no update)
+//
+// Returns:
+//   - error: ErrClientNoUpdate if no fields provided, or database errors
 func (u *user) UpdateUser(ctx context.Context, userID, displayName, email string) error {
 	if displayName == "" && email == "" {
 		return ErrClientNoUpdate
