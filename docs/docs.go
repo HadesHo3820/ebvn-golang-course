@@ -41,6 +41,112 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/bookmarks": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of bookmarks for the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bookmark"
+                ],
+                "summary": "List bookmarks",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_bookmark.listBookmarksResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new bookmark with a description and target URL. Returns the created bookmark with its short code.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bookmark"
+                ],
+                "summary": "Create a new bookmark",
+                "parameters": [
+                    {
+                        "description": "Bookmark details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_bookmark.createBookmarkInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/gen-pass": {
             "get": {
                 "description": "Generates a cryptographically secure random password",
@@ -344,6 +450,32 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_HadesHo3820_ebvn-golang-course_internal_model.User": {
             "type": "object",
             "properties": {
@@ -367,6 +499,26 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_HadesHo3820_ebvn-golang-course_pkg_pagination.Metadata": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer"
+                },
+                "first_page": {
+                    "type": "integer"
+                },
+                "last_page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total_records": {
+                    "type": "integer"
+                }
+            }
+        },
         "github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message": {
             "type": "object",
             "properties": {
@@ -376,6 +528,41 @@ const docTemplate = `{
                 "message": {
                     "description": "Message is a brief summary of the response (e.g., \"Input error\").",
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler_bookmark.createBookmarkInput": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "description": {
+                    "description": "Description of the bookmark",
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "example": "Your description here"
+                },
+                "url": {
+                    "description": "URL to be shortened",
+                    "type": "string",
+                    "maxLength": 2048,
+                    "example": "https://example.com"
+                }
+            }
+        },
+        "internal_handler_bookmark.listBookmarksResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark"
+                    }
+                },
+                "metadata": {
+                    "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_pagination.Metadata"
                 }
             }
         },
@@ -579,7 +766,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.3",
+	Version:          "1.4",
 	Host:             "localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{},

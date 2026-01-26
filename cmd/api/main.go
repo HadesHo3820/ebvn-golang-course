@@ -6,7 +6,7 @@ import (
 )
 
 // @title EBVN Bookmark API
-// @version 1.3
+// @version 1.4
 // @description A simple password generator API built with Go and Gin.
 // @host localhost:8080
 // @BasePath /

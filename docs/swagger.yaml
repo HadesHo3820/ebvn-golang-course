@@ -1,5 +1,22 @@
 basePath: /
 definitions:
+  github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      updated_at:
+        type: string
+      url:
+        type: string
+      user_id:
+        type: string
+    type: object
   github_com_HadesHo3820_ebvn-golang-course_internal_model.User:
     properties:
       created_at:
@@ -15,6 +32,19 @@ definitions:
       username:
         type: string
     type: object
+  github_com_HadesHo3820_ebvn-golang-course_pkg_pagination.Metadata:
+    properties:
+      current_page:
+        type: integer
+      first_page:
+        type: integer
+      last_page:
+        type: integer
+      page_size:
+        type: integer
+      total_records:
+        type: integer
+    type: object
   github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message:
     properties:
       details:
@@ -24,6 +54,31 @@ definitions:
       message:
         description: Message is a brief summary of the response (e.g., "Input error").
         type: string
+    type: object
+  internal_handler_bookmark.createBookmarkInput:
+    properties:
+      description:
+        description: Description of the bookmark
+        example: Your description here
+        maxLength: 255
+        minLength: 1
+        type: string
+      url:
+        description: URL to be shortened
+        example: https://example.com
+        maxLength: 2048
+        type: string
+    required:
+    - url
+    type: object
+  internal_handler_bookmark.listBookmarksResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark'
+        type: array
+      metadata:
+        $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_pagination.Metadata'
     type: object
   internal_handler_healthcheck.pingErrorResponse:
     properties:
@@ -170,7 +225,7 @@ info:
   contact: {}
   description: A simple password generator API built with Go and Gin.
   title: EBVN Bookmark API
-  version: "1.3"
+  version: "1.4"
 paths:
   /health-check:
     get:
@@ -189,6 +244,74 @@ paths:
       summary: Health check
       tags:
       - health_check
+  /v1/bookmarks:
+    get:
+      description: Get a paginated list of bookmarks for the authenticated user
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler_bookmark.listBookmarksResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+      security:
+      - BearerAuth: []
+      summary: List bookmarks
+      tags:
+      - Bookmark
+    post:
+      consumes:
+      - application/json
+      description: Create a new bookmark with a description and target URL. Returns
+        the created bookmark with its short code.
+      parameters:
+      - description: Bookmark details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler_bookmark.createBookmarkInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+      security:
+      - BearerAuth: []
+      summary: Create a new bookmark
+      tags:
+      - Bookmark
   /v1/gen-pass:
     get:
       description: Generates a cryptographically secure random password
