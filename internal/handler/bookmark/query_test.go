@@ -49,7 +49,7 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 				svcMock.On("GetBookmarks",
 					mock.Anything,
 					testUserID,
-					mock.MatchedBy(func(req pagination.Request) bool {
+					mock.MatchedBy(func(req *pagination.Request) bool {
 						return req.Page == 0 && req.Limit == 0 // Defaults before validation/sanitization in service/repo layer
 					}),
 				).Return(&pagination.Response[*model.Bookmark]{
@@ -109,7 +109,7 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 				svcMock.On("GetBookmarks",
 					mock.Anything,
 					testUserID,
-					pagination.Request{Page: 2, Limit: 5},
+					&pagination.Request{Page: 2, Limit: 5},
 				).Return(&pagination.Response[*model.Bookmark]{
 					Data: []*model.Bookmark{},
 					Metadata: pagination.Metadata{
