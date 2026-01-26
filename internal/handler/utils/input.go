@@ -84,10 +84,13 @@ func validatePassword(fl validator.FieldLevel) bool {
 func BindInputFromRequest[T any](c *gin.Context) (*T, error) {
 	reqInput := new(T)
 
-	if err := c.ShouldBindJSON(reqInput); err != nil {
-		c.JSON(http.StatusBadRequest, response.InputFieldError(err))
-		c.Abort()
-		return nil, err
+	// Skip JSON binding for GET requests to avoid EOF error on empty body
+	if c.Request.Method != http.MethodGet {
+		if err := c.ShouldBindJSON(reqInput); err != nil && err.Error() != "EOF" {
+			c.JSON(http.StatusBadRequest, response.InputFieldError(err))
+			c.Abort()
+			return nil, err
+		}
 	}
 
 	if err := c.ShouldBindUri(reqInput); err != nil {
