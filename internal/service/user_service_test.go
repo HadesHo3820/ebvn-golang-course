@@ -72,14 +72,18 @@ func TestUser_CreateUser(t *testing.T) {
 					DisplayName: testUserDisplayName,
 					Email:       testUserEmail,
 				}).Return(&model.User{
-					ID:          testUserID,
+					Base: model.Base{
+						ID: testUserID,
+					},
 					Username:    testUserUsername,
 					DisplayName: testUserDisplayName,
 					Email:       testUserEmail,
 				}, nil)
 			},
 			expectedOutput: &model.User{
-				ID:          "test-uuid",
+				Base: model.Base{
+					ID: testUserID,
+				},
 				Username:    testUserUsername,
 				DisplayName: testUserDisplayName,
 				Email:       testUserEmail,
@@ -179,7 +183,9 @@ func TestUser_Login(t *testing.T) {
 			inputPassword: "correctpassword",
 			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator, mockPasswordHashing *mocks.PasswordHashing) {
 				mockRepo.On("GetUserByUsername", ctx, testUserUsername).Return(&model.User{
-					ID:       testUserID,
+					Base: model.Base{
+						ID: testUserID,
+					},
 					Username: "testuser",
 					Password: hashedPassword,
 				}, nil)
@@ -205,7 +211,9 @@ func TestUser_Login(t *testing.T) {
 			inputPassword: "wrongpassword",
 			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator, mockPasswordHashing *mocks.PasswordHashing) {
 				mockRepo.On("GetUserByUsername", ctx, "testuser").Return(&model.User{
-					ID:       testUserID,
+					Base: model.Base{
+						ID: testUserID,
+					},
 					Username: "testuser",
 					Password: hashedPassword,
 				}, nil)
@@ -219,7 +227,9 @@ func TestUser_Login(t *testing.T) {
 			inputPassword: "correctpassword",
 			setupMock: func(ctx context.Context, mockRepo *repoMocks.User, mockJWT *jwtMocks.JWTGenerator, mockPasswordHashing *mocks.PasswordHashing) {
 				mockRepo.On("GetUserByUsername", ctx, "testuser").Return(&model.User{
-					ID:       testUserID,
+					Base: model.Base{
+						ID: testUserID,
+					},
 					Username: "testuser",
 					Password: hashedPassword,
 				}, nil)
@@ -281,21 +291,25 @@ func TestUser_GetUserByID(t *testing.T) {
 			inputUserID: existingUserID,
 			setupMock: func(mockRepo *repoMocks.User, ctx context.Context) {
 				mockRepo.On("GetUserById", ctx, existingUserID).Return(&model.User{
-					ID:          existingUserID,
+					Base: model.Base{
+						ID:        existingUserID,
+						CreatedAt: fixedTime,
+						UpdatedAt: fixedTime,
+					},
 					Username:    "testuser",
 					DisplayName: "Test User",
 					Email:       "test@example.com",
-					CreatedAt:   fixedTime,
-					UpdatedAt:   fixedTime,
 				}, nil)
 			},
 			expectedOutput: &model.User{
-				ID:          existingUserID,
+				Base: model.Base{
+					ID:        existingUserID,
+					CreatedAt: fixedTime,
+					UpdatedAt: fixedTime,
+				},
 				Username:    testUserUsername,
 				DisplayName: testUserDisplayName,
 				Email:       testUserEmail,
-				CreatedAt:   fixedTime,
-				UpdatedAt:   fixedTime,
 			},
 		},
 		{
