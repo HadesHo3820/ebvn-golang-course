@@ -29,13 +29,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_healthcheck.pingResponse"
+                            "$ref": "#/definitions/healthcheck.pingResponse"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable - dependency unhealthy",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_healthcheck.pingErrorResponse"
+                            "$ref": "#/definitions/healthcheck.pingErrorResponse"
                         }
                     }
                 }
@@ -74,19 +74,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_bookmark.listBookmarksResponse"
+                            "$ref": "#/definitions/bookmark.listBookmarksResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     }
                 }
@@ -115,7 +115,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_bookmark.createBookmarkInput"
+                            "$ref": "#/definitions/bookmark.createBookmarkInput"
                         }
                     }
                 ],
@@ -123,25 +123,95 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark"
+                            "$ref": "#/definitions/model.Bookmark"
                         }
                     },
                     "400": {
                         "description": "Invalid input",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/bookmarks/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing bookmark's description and URL. Only the bookmark owner can update it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bookmark"
+                ],
+                "summary": "Update a bookmark",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bookmark ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated bookmark details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bookmark.updateBookmarkInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/response.Message"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/response.Message"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.Message"
+                        }
+                    },
+                    "404": {
+                        "description": "Bookmark not found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Message"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Message"
                         }
                     }
                 }
@@ -167,7 +237,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     }
                 }
@@ -193,7 +263,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_url.urlShortenRequest"
+                            "$ref": "#/definitions/url.urlShortenRequest"
                         }
                     }
                 ],
@@ -201,19 +271,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_url.urlShortenResponse"
+                            "$ref": "#/definitions/url.urlShortenResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     }
                 }
@@ -252,7 +322,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     }
                 }
@@ -277,19 +347,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_user.profileResBody"
+                            "$ref": "#/definitions/user.profileResBody"
                         }
                     },
                     "401": {
                         "description": "Invalid or missing token",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     }
                 }
@@ -318,7 +388,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_user.updateSelfInfoReqBody"
+                            "$ref": "#/definitions/user.updateSelfInfoReqBody"
                         }
                     }
                 ],
@@ -326,31 +396,31 @@ const docTemplate = `{
                     "200": {
                         "description": "Profile updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "400": {
                         "description": "No data provided for update",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "401": {
                         "description": "Invalid or missing token",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "404": {
                         "description": "User does not exist",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     }
                 }
@@ -376,7 +446,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_user.loginInputBody"
+                            "$ref": "#/definitions/user.loginInputBody"
                         }
                     }
                 ],
@@ -384,19 +454,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_user.loginResBody"
+                            "$ref": "#/definitions/user.loginResBody"
                         }
                     },
                     "400": {
                         "description": "Invalid username or password",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     }
                 }
@@ -422,7 +492,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_user.registerInputBody"
+                            "$ref": "#/definitions/user.registerInputBody"
                         }
                     }
                 ],
@@ -430,19 +500,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler_user.registerResBody"
+                            "$ref": "#/definitions/user.registerResBody"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                            "$ref": "#/definitions/response.Message"
                         }
                     }
                 }
@@ -450,7 +520,104 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark": {
+        "bookmark.createBookmarkInput": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "description": {
+                    "description": "Description of the bookmark",
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "example": "Your description here"
+                },
+                "url": {
+                    "description": "URL to be shortened",
+                    "type": "string",
+                    "maxLength": 2048,
+                    "example": "https://example.com"
+                }
+            }
+        },
+        "bookmark.listBookmarksResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Bookmark"
+                    }
+                },
+                "metadata": {
+                    "$ref": "#/definitions/pagination.Metadata"
+                }
+            }
+        },
+        "bookmark.updateBookmarkInput": {
+            "type": "object",
+            "required": [
+                "id",
+                "url"
+            ],
+            "properties": {
+                "description": {
+                    "description": "Description of the bookmark",
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Google"
+                },
+                "id": {
+                    "description": "ID is the bookmark identifier from the URL path",
+                    "type": "string"
+                },
+                "url": {
+                    "description": "URL to be shortened",
+                    "type": "string",
+                    "maxLength": 2048,
+                    "example": "https://www.google.com"
+                }
+            }
+        },
+        "healthcheck.pingErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "instance_id": {
+                    "type": "string",
+                    "example": "instance-123"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "OK"
+                },
+                "service_name": {
+                    "type": "string",
+                    "example": "bookmark_service"
+                }
+            }
+        },
+        "healthcheck.pingResponse": {
+            "type": "object",
+            "properties": {
+                "instance_id": {
+                    "type": "string",
+                    "example": "instance-123"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "OK"
+                },
+                "service_name": {
+                    "type": "string",
+                    "example": "bookmark_service"
+                }
+            }
+        },
+        "model.Bookmark": {
             "type": "object",
             "properties": {
                 "code": {
@@ -476,7 +643,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_HadesHo3820_ebvn-golang-course_internal_model.User": {
+        "model.User": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -499,7 +666,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_HadesHo3820_ebvn-golang-course_pkg_pagination.Metadata": {
+        "pagination.Metadata": {
             "type": "object",
             "properties": {
                 "current_page": {
@@ -519,7 +686,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message": {
+        "response.Message": {
             "type": "object",
             "properties": {
                 "details": {
@@ -531,79 +698,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler_bookmark.createBookmarkInput": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "description": {
-                    "description": "Description of the bookmark",
-                    "type": "string",
-                    "maxLength": 255,
-                    "minLength": 1,
-                    "example": "Your description here"
-                },
-                "url": {
-                    "description": "URL to be shortened",
-                    "type": "string",
-                    "maxLength": 2048,
-                    "example": "https://example.com"
-                }
-            }
-        },
-        "internal_handler_bookmark.listBookmarksResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark"
-                    }
-                },
-                "metadata": {
-                    "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_pagination.Metadata"
-                }
-            }
-        },
-        "internal_handler_healthcheck.pingErrorResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string"
-                },
-                "instance_id": {
-                    "type": "string",
-                    "example": "instance-123"
-                },
-                "message": {
-                    "type": "string",
-                    "example": "OK"
-                },
-                "service_name": {
-                    "type": "string",
-                    "example": "bookmark_service"
-                }
-            }
-        },
-        "internal_handler_healthcheck.pingResponse": {
-            "type": "object",
-            "properties": {
-                "instance_id": {
-                    "type": "string",
-                    "example": "instance-123"
-                },
-                "message": {
-                    "type": "string",
-                    "example": "OK"
-                },
-                "service_name": {
-                    "type": "string",
-                    "example": "bookmark_service"
-                }
-            }
-        },
-        "internal_handler_url.urlShortenRequest": {
+        "url.urlShortenRequest": {
             "type": "object",
             "required": [
                 "exp",
@@ -624,7 +719,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler_url.urlShortenResponse": {
+        "url.urlShortenResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -639,7 +734,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler_user.loginInputBody": {
+        "user.loginInputBody": {
             "type": "object",
             "required": [
                 "password",
@@ -657,7 +752,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler_user.loginResBody": {
+        "user.loginResBody": {
             "type": "object",
             "properties": {
                 "data": {
@@ -669,15 +764,15 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler_user.profileResBody": {
+        "user.profileResBody": {
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.User"
+                    "$ref": "#/definitions/model.User"
                 }
             }
         },
-        "internal_handler_user.registerInputBody": {
+        "user.registerInputBody": {
             "type": "object",
             "required": [
                 "display_name",
@@ -710,18 +805,18 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler_user.registerResBody": {
+        "user.registerResBody": {
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/internal_handler_user.registerUserData"
+                    "$ref": "#/definitions/user.registerUserData"
                 },
                 "message": {
                     "type": "string"
                 }
             }
         },
-        "internal_handler_user.registerUserData": {
+        "user.registerUserData": {
             "type": "object",
             "properties": {
                 "display_name": {
@@ -741,7 +836,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler_user.updateSelfInfoReqBody": {
+        "user.updateSelfInfoReqBody": {
             "type": "object",
             "properties": {
                 "display_name": {

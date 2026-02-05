@@ -1,6 +1,76 @@
 basePath: /
 definitions:
-  github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark:
+  bookmark.createBookmarkInput:
+    properties:
+      description:
+        description: Description of the bookmark
+        example: Your description here
+        maxLength: 255
+        minLength: 1
+        type: string
+      url:
+        description: URL to be shortened
+        example: https://example.com
+        maxLength: 2048
+        type: string
+    required:
+    - url
+    type: object
+  bookmark.listBookmarksResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/model.Bookmark'
+        type: array
+      metadata:
+        $ref: '#/definitions/pagination.Metadata'
+    type: object
+  bookmark.updateBookmarkInput:
+    properties:
+      description:
+        description: Description of the bookmark
+        example: Google
+        maxLength: 255
+        type: string
+      id:
+        description: ID is the bookmark identifier from the URL path
+        type: string
+      url:
+        description: URL to be shortened
+        example: https://www.google.com
+        maxLength: 2048
+        type: string
+    required:
+    - id
+    - url
+    type: object
+  healthcheck.pingErrorResponse:
+    properties:
+      error:
+        type: string
+      instance_id:
+        example: instance-123
+        type: string
+      message:
+        example: OK
+        type: string
+      service_name:
+        example: bookmark_service
+        type: string
+    type: object
+  healthcheck.pingResponse:
+    properties:
+      instance_id:
+        example: instance-123
+        type: string
+      message:
+        example: OK
+        type: string
+      service_name:
+        example: bookmark_service
+        type: string
+    type: object
+  model.Bookmark:
     properties:
       code:
         type: string
@@ -17,7 +87,7 @@ definitions:
       user_id:
         type: string
     type: object
-  github_com_HadesHo3820_ebvn-golang-course_internal_model.User:
+  model.User:
     properties:
       created_at:
         type: string
@@ -32,7 +102,7 @@ definitions:
       username:
         type: string
     type: object
-  github_com_HadesHo3820_ebvn-golang-course_pkg_pagination.Metadata:
+  pagination.Metadata:
     properties:
       current_page:
         type: integer
@@ -45,7 +115,7 @@ definitions:
       total_records:
         type: integer
     type: object
-  github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message:
+  response.Message:
     properties:
       details:
         description: |-
@@ -55,58 +125,7 @@ definitions:
         description: Message is a brief summary of the response (e.g., "Input error").
         type: string
     type: object
-  internal_handler_bookmark.createBookmarkInput:
-    properties:
-      description:
-        description: Description of the bookmark
-        example: Your description here
-        maxLength: 255
-        minLength: 1
-        type: string
-      url:
-        description: URL to be shortened
-        example: https://example.com
-        maxLength: 2048
-        type: string
-    required:
-    - url
-    type: object
-  internal_handler_bookmark.listBookmarksResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark'
-        type: array
-      metadata:
-        $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_pagination.Metadata'
-    type: object
-  internal_handler_healthcheck.pingErrorResponse:
-    properties:
-      error:
-        type: string
-      instance_id:
-        example: instance-123
-        type: string
-      message:
-        example: OK
-        type: string
-      service_name:
-        example: bookmark_service
-        type: string
-    type: object
-  internal_handler_healthcheck.pingResponse:
-    properties:
-      instance_id:
-        example: instance-123
-        type: string
-      message:
-        example: OK
-        type: string
-      service_name:
-        example: bookmark_service
-        type: string
-    type: object
-  internal_handler_url.urlShortenRequest:
+  url.urlShortenRequest:
     properties:
       exp:
         description: |-
@@ -127,7 +146,7 @@ definitions:
     - exp
     - url
     type: object
-  internal_handler_url.urlShortenResponse:
+  url.urlShortenResponse:
     properties:
       code:
         description: Code is the generated short code that maps to the original URL.
@@ -138,7 +157,7 @@ definitions:
         example: Shorten URL generated successfully!
         type: string
     type: object
-  internal_handler_user.loginInputBody:
+  user.loginInputBody:
     properties:
       password:
         description: Password is the user's password.
@@ -151,7 +170,7 @@ definitions:
     - password
     - username
     type: object
-  internal_handler_user.loginResBody:
+  user.loginResBody:
     properties:
       data:
         description: Token is the JWT authentication token.
@@ -159,12 +178,12 @@ definitions:
       message:
         type: string
     type: object
-  internal_handler_user.profileResBody:
+  user.profileResBody:
     properties:
       data:
-        $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.User'
+        $ref: '#/definitions/model.User'
     type: object
-  internal_handler_user.registerInputBody:
+  user.registerInputBody:
     properties:
       display_name:
         description: DisplayName is the user's display name shown in the UI.
@@ -191,14 +210,14 @@ definitions:
     - password
     - username
     type: object
-  internal_handler_user.registerResBody:
+  user.registerResBody:
     properties:
       data:
-        $ref: '#/definitions/internal_handler_user.registerUserData'
+        $ref: '#/definitions/user.registerUserData'
       message:
         type: string
     type: object
-  internal_handler_user.registerUserData:
+  user.registerUserData:
     properties:
       display_name:
         type: string
@@ -211,7 +230,7 @@ definitions:
       username:
         type: string
     type: object
-  internal_handler_user.updateSelfInfoReqBody:
+  user.updateSelfInfoReqBody:
     properties:
       display_name:
         type: string
@@ -236,11 +255,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler_healthcheck.pingResponse'
+            $ref: '#/definitions/healthcheck.pingResponse'
         "503":
           description: Service Unavailable - dependency unhealthy
           schema:
-            $ref: '#/definitions/internal_handler_healthcheck.pingErrorResponse'
+            $ref: '#/definitions/healthcheck.pingErrorResponse'
       summary: Health check
       tags:
       - health_check
@@ -262,15 +281,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler_bookmark.listBookmarksResponse'
+            $ref: '#/definitions/bookmark.listBookmarksResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
       security:
       - BearerAuth: []
       summary: List bookmarks
@@ -287,29 +306,75 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handler_bookmark.createBookmarkInput'
+          $ref: '#/definitions/bookmark.createBookmarkInput'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark'
+            $ref: '#/definitions/model.Bookmark'
         "400":
           description: Invalid input
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
       security:
       - BearerAuth: []
       summary: Create a new bookmark
+      tags:
+      - Bookmark
+  /v1/bookmarks/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update an existing bookmark's description and URL. Only the bookmark
+        owner can update it.
+      parameters:
+      - description: Bookmark ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated bookmark details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/bookmark.updateBookmarkInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/response.Message'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/response.Message'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Message'
+        "404":
+          description: Bookmark not found
+          schema:
+            $ref: '#/definitions/response.Message'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.Message'
+      security:
+      - BearerAuth: []
+      summary: Update a bookmark
       tags:
       - Bookmark
   /v1/gen-pass:
@@ -325,7 +390,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
       summary: Generate a random password
       tags:
       - password
@@ -351,7 +416,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
       summary: Redirect to original URL
       tags:
       - URL
@@ -366,22 +431,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handler_url.urlShortenRequest'
+          $ref: '#/definitions/url.urlShortenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler_url.urlShortenResponse'
+            $ref: '#/definitions/url.urlShortenResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
       summary: Shorten URL
       tags:
       - URL
@@ -394,15 +459,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler_user.profileResBody'
+            $ref: '#/definitions/user.profileResBody'
         "401":
           description: Invalid or missing token
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
       security:
       - BearerAuth: []
       summary: Get user profile
@@ -419,30 +484,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handler_user.updateSelfInfoReqBody'
+          $ref: '#/definitions/user.updateSelfInfoReqBody'
       produces:
       - application/json
       responses:
         "200":
           description: Profile updated successfully
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "400":
           description: No data provided for update
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "401":
           description: Invalid or missing token
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "404":
           description: User does not exist
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
       security:
       - BearerAuth: []
       summary: Update user profile
@@ -459,22 +524,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_handler_user.loginInputBody'
+          $ref: '#/definitions/user.loginInputBody'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler_user.loginResBody'
+            $ref: '#/definitions/user.loginResBody'
         "400":
           description: Invalid username or password
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
       summary: Login a user
       tags:
       - User
@@ -489,22 +554,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_handler_user.registerInputBody'
+          $ref: '#/definitions/user.registerInputBody'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler_user.registerResBody'
+            $ref: '#/definitions/user.registerResBody'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message'
+            $ref: '#/definitions/response.Message'
       summary: Register a new user
       tags:
       - User
