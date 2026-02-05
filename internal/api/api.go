@@ -200,6 +200,9 @@ func (a *api) RegisterEP() {
 
 		// GET /v1/bookmarks - List bookmarks
 		v1PrivateRoutes.GET("/bookmarks", allHandlers.bookmarkHandler.GetBookmarks)
+
+		// PUT /v1/bookmarks/:id - Update a bookmark
+		v1PrivateRoutes.PUT("/bookmarks/:id", allHandlers.bookmarkHandler.UpdateBookmark)
 	}
 
 	// Configure Swagger host dynamically at runtime.
