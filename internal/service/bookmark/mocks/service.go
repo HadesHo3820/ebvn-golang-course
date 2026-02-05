@@ -76,6 +76,24 @@ func (_m *Service) GetBookmarks(ctx context.Context, userID string, req *paginat
 	return r0, r1
 }
 
+// UpdateBookmark provides a mock function with given fields: ctx, bookmarkID, userID, description, url
+func (_m *Service) UpdateBookmark(ctx context.Context, bookmarkID string, userID string, description string, url string) error {
+	ret := _m.Called(ctx, bookmarkID, userID, description, url)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateBookmark")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
+		r0 = rf(ctx, bookmarkID, userID, description, url)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // NewService creates a new instance of Service. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewService(t interface {
