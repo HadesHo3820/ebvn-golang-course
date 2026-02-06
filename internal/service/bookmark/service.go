@@ -14,6 +14,7 @@ type Service interface {
 	CreateBookmark(ctx context.Context, description, url, userID string) (*model.Bookmark, error)
 	GetBookmarks(ctx context.Context, userID string, req *pagination.Request) (*pagination.Response[*model.Bookmark], error)
 	UpdateBookmark(ctx context.Context, bookmarkID, userID, description, url string) error
+	DeleteBookmark(ctx context.Context, bookmarkID, userID string) error
 }
 
 type BookmarkSvc struct {

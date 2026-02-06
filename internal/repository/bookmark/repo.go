@@ -15,6 +15,7 @@ type Repository interface {
 	CreateBookmark(ctx context.Context, bookmark *model.Bookmark) (*model.Bookmark, error)
 	GetBookmarks(ctx context.Context, userID string, limit, offset int) ([]*model.Bookmark, int64, error)
 	UpdateBookmark(ctx context.Context, bookmarkID, userID, description, url string) error
+	DeleteBookmark(ctx context.Context, bookmarkID, userID string) error
 }
 
 // bookmarkRepo is the concrete implementation of the Repository interface using GORM.

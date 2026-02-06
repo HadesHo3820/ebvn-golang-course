@@ -9,6 +9,7 @@ type Handler interface {
 	CreateBookmark(c *gin.Context)
 	GetBookmarks(c *gin.Context)
 	UpdateBookmark(c *gin.Context)
+	DeleteBookmark(c *gin.Context)
 }
 
 type bookmarkHandler struct {

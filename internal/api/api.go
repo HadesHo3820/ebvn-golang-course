@@ -203,6 +203,9 @@ func (a *api) RegisterEP() {
 
 		// PUT /v1/bookmarks/:id - Update a bookmark
 		v1PrivateRoutes.PUT("/bookmarks/:id", allHandlers.bookmarkHandler.UpdateBookmark)
+
+		// DELETE /v1/bookmarks/:id - Delete a bookmark
+		v1PrivateRoutes.DELETE("/bookmarks/:id", allHandlers.bookmarkHandler.DeleteBookmark)
 	}
 
 	// Configure Swagger host dynamically at runtime.
