@@ -266,6 +266,10 @@ COPY --from=build /opt/app/bookmark_service /app/bookmark_service
 # Copy the Swagger/OpenAPI documentation files.
 # These are required for the /swagger endpoint to serve API documentation.
 COPY --from=build /opt/app/docs /app/docs
+# Copy the database migration files.
+# These SQL files are required by the application to initialize or update the database schema
+# on startup using the golang-migrate library.
+COPY --from=build /opt/app/migrations /app/migrations
 
 # Define the default command to run when the container starts.
 # This executes the compiled Go binary.

@@ -47,26 +47,31 @@ const (
 //
 // Returns an error if the data insertion fails.
 func (f *UserCommonTestDB) GenerateData() error {
-	db := f.db.Session(&gorm.Session{})
+	// This will allow us to skip the BeforeCreate hook
+	db := f.db.Session(&gorm.Session{SkipHooks: true})
 
 	users := []*model.User{
 		{
-			ID:          FixtureUserOneID,
+			Base: model.Base{
+				ID:        FixtureUserOneID,
+				CreatedAt: FixtureTimestamp,
+				UpdatedAt: FixtureTimestamp,
+			},
 			DisplayName: FixtureUserOneDisplayName,
 			Username:    FixtureUserOneUsername,
 			Email:       FixtureUserOneEmail,
 			Password:    FixtureUserPassword,
-			CreatedAt:   FixtureTimestamp,
-			UpdatedAt:   FixtureTimestamp,
 		},
 		{
-			ID:          FixtureUserTwoID,
+			Base: model.Base{
+				ID:        FixtureUserTwoID,
+				CreatedAt: FixtureTimestamp,
+				UpdatedAt: FixtureTimestamp,
+			},
 			DisplayName: FixtureUserTwoDisplayName,
 			Username:    FixtureUserTwoUsername,
 			Email:       FixtureUserTwoEmail,
 			Password:    FixtureUserPassword,
-			CreatedAt:   FixtureTimestamp,
-			UpdatedAt:   FixtureTimestamp,
 		},
 	}
 

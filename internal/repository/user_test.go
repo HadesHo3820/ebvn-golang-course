@@ -39,22 +39,26 @@ func TestUser_CreateUser(t *testing.T) {
 				return fixture.NewFixture(t, &fixture.UserCommonTestDB{})
 			},
 			inputUser: &model.User{
-				ID:          "229ac10b-58cc-4372-a567-0e02b2c3d479",
+				Base: model.Base{
+					ID:        "229ac10b-58cc-4372-a567-0e02b2c3d479",
+					CreatedAt: createdAt,
+					UpdatedAt: updatedAt,
+				},
 				DisplayName: fixture.FixtureUserOneDisplayName,
 				Username:    "johnny.ho1",
 				Email:       "johnny.ho1@example.com",
 				Password:    fixture.FixtureUserPassword,
-				CreatedAt:   createdAt,
-				UpdatedAt:   updatedAt,
 			},
 			expectedOutput: &model.User{
-				ID:          "229ac10b-58cc-4372-a567-0e02b2c3d479",
+				Base: model.Base{
+					ID:        "229ac10b-58cc-4372-a567-0e02b2c3d479",
+					CreatedAt: createdAt,
+					UpdatedAt: updatedAt,
+				},
 				DisplayName: fixture.FixtureUserOneDisplayName,
 				Username:    "johnny.ho1",
 				Email:       "johnny.ho1@example.com",
 				Password:    fixture.FixtureUserPassword,
-				CreatedAt:   createdAt,
-				UpdatedAt:   updatedAt,
 			},
 			verifyFunc: func(db *gorm.DB, user *model.User) {
 				checkUser := &model.User{}
@@ -69,7 +73,9 @@ func TestUser_CreateUser(t *testing.T) {
 				return fixture.NewFixture(t, &fixture.UserCommonTestDB{})
 			},
 			inputUser: &model.User{
-				ID:          fixture.FixtureUserOneID,
+				Base: model.Base{
+					ID: fixture.FixtureUserOneID,
+				},
 				DisplayName: fixture.FixtureUserOneDisplayName,
 				Username:    fixture.FixtureUserOneUsername,
 				Email:       fixture.FixtureUserOneEmail,
@@ -127,13 +133,15 @@ func TestUser_GetUserByUsername(t *testing.T) {
 			},
 			inputUsername: fixture.FixtureUserOneUsername,
 			expectedOutput: &model.User{
-				ID:          fixture.FixtureUserOneID,
+				Base: model.Base{
+					ID:        fixture.FixtureUserOneID,
+					CreatedAt: fixture.FixtureTimestamp,
+					UpdatedAt: fixture.FixtureTimestamp,
+				},
 				DisplayName: fixture.FixtureUserOneDisplayName,
 				Username:    fixture.FixtureUserOneUsername,
 				Email:       fixture.FixtureUserOneEmail,
 				Password:    fixture.FixtureUserPassword,
-				CreatedAt:   fixture.FixtureTimestamp,
-				UpdatedAt:   fixture.FixtureTimestamp,
 			},
 		},
 		{
@@ -192,13 +200,15 @@ func TestUser_GetUserById(t *testing.T) {
 			},
 			inputUserID: "322ac10b-58cc-4372-a567-0e02b2c3d479",
 			expectedOutput: &model.User{
-				ID:          "322ac10b-58cc-4372-a567-0e02b2c3d479",
+				Base: model.Base{
+					ID:        "322ac10b-58cc-4372-a567-0e02b2c3d479",
+					CreatedAt: fixture.FixtureTimestamp,
+					UpdatedAt: fixture.FixtureTimestamp,
+				},
 				DisplayName: "Huy Ho",
 				Username:    "huy.ho",
 				Email:       "huy.ho@example.com",
 				Password:    fixture.FixtureUserPassword,
-				CreatedAt:   fixture.FixtureTimestamp,
-				UpdatedAt:   fixture.FixtureTimestamp,
 			},
 		},
 		{

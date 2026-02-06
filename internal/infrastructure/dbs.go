@@ -1,7 +1,6 @@
 package infrastructure
 
 import (
-	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/common"
 	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/sqldb"
@@ -30,8 +29,9 @@ func CreateSQLDBWithMigration() *gorm.DB {
 
 }
 
-// MigrateDB migrates db the database according to the User struct.
-// It will create the table if it doesn't exist and update the schema if it's outdated.
-func MigrateDB(db *gorm.DB) error {
-	return db.AutoMigrate(&model.User{})
+// MigrateDB executes all pending database migrations from the "./migrations" directory.
+// It ensures the database schema is up-to-date by applying all "up" migration files
+// found in the configured migration path.
+func MigrateDB(sqlDB *gorm.DB) error {
+	return sqldb.MigrateSQLDB(sqlDB, "file://./migrations", "up", 0)
 }

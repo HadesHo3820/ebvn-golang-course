@@ -60,11 +60,14 @@ func TestUserHandler_Register(t *testing.T) {
 					ctx,
 					defaultUsername, defaultPassword, defaultDisplayName, defaultEmail,
 				).Return(&model.User{
-					ID:          "test-uuid",
+					Base: model.Base{
+						ID:          "test-uuid",
+						CreatedAt:   fixedTime,
+						UpdatedAt:   fixedTime,
+					},
 					Username:    defaultUsername,
 					DisplayName: defaultDisplayName,
 					Email:       defaultEmail,
-					UpdatedAt:   fixedTime,
 				}, nil)
 				return svcMock
 			},

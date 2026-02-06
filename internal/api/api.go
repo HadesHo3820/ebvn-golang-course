@@ -9,12 +9,15 @@ import (
 
 	"github.com/HadesHo3820/ebvn-golang-course/docs"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api/middleware"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/bookmark"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/healthcheck"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/password"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/url"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/user"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/repository"
+	bookmarkRepo "github.com/HadesHo3820/ebvn-golang-course/internal/repository/bookmark"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
+	bookmarkSvc "github.com/HadesHo3820/ebvn-golang-course/internal/service/bookmark"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/jwtutils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/utils"
@@ -97,6 +100,7 @@ type handlers struct {
 	passwordHandler    password.PasswordHandler       // Handles password generation endpoints
 	urlShortenHandler  url.UrlHandler                 // Handles URL shortening endpoints
 	userHandler        user.UserHandler               // Handles user management endpoints
+	bookmarkHandler    bookmark.Handler               // Handles bookmark endpoints
 }
 
 // initHandlers initializes all handlers with their required dependencies.
@@ -127,11 +131,17 @@ func (a *api) initHandlers() *handlers {
 	userRepo := repository.NewUser(a.db)
 	userSvc := service.NewUser(userRepo, a.jwtGen, a.passwordHashing)
 
+	// Init bookmark handler
+	bookmarkRepo := bookmarkRepo.NewRepository(a.db)
+	bookmarkSvc := bookmarkSvc.NewBookmarkSvc(bookmarkRepo, a.keyGen)
+	bookmarkHandler := bookmark.NewHandler(bookmarkSvc)
+
 	return &handlers{
 		healthCheckHandler: healthcheck.NewHealthCheckHandler(healthSvc),
 		passwordHandler:    password.NewPasswordHandler(passSvc),
 		urlShortenHandler:  url.NewUrlHandler(urlSvc),
 		userHandler:        user.NewUserHandler(userSvc),
+		bookmarkHandler:    bookmarkHandler,
 	}
 }
 
@@ -184,6 +194,18 @@ func (a *api) RegisterEP() {
 
 		// PUT /v1/self/info - Updates the authenticated user's profile information
 		v1PrivateRoutes.PUT("/self/info", allHandlers.userHandler.UpdateSelfInfo)
+
+		// POST /v1/bookmark - Creates a new bookmark
+		v1PrivateRoutes.POST("/bookmarks", allHandlers.bookmarkHandler.CreateBookmark)
+
+		// GET /v1/bookmarks - List bookmarks
+		v1PrivateRoutes.GET("/bookmarks", allHandlers.bookmarkHandler.GetBookmarks)
+
+		// PUT /v1/bookmarks/:id - Update a bookmark
+		v1PrivateRoutes.PUT("/bookmarks/:id", allHandlers.bookmarkHandler.UpdateBookmark)
+
+		// DELETE /v1/bookmarks/:id - Delete a bookmark
+		v1PrivateRoutes.DELETE("/bookmarks/:id", allHandlers.bookmarkHandler.DeleteBookmark)
 	}
 
 	// Configure Swagger host dynamically at runtime.

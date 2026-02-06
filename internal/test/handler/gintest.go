@@ -90,3 +90,55 @@ func (tc *TestContext) WithHeader(key, value string) *TestContext {
 	tc.Ctx.Request.Header.Set(key, value)
 	return tc
 }
+
+// WithURIParams sets URI path parameters in the context, simulating Gin's URI parsing.
+// This is used for "Path Parameters" which are variable parts of the URL path itself.
+//
+// Why map[string]string?
+// Even though a single parameter (like :id) has only one value, a URL can contain
+// MULTIPLE distinct path parameters. For example:
+//
+//	Route: /organizations/:orgID/teams/:teamID
+//	Usage: .WithURIParams(map[string]string{
+//	    "orgID":  "google",
+//	    "teamID": "engineering",
+//	})
+//
+// Parameters:
+//   - params: Map of parameter names to values
+//
+// Returns the TestContext for method chaining.
+func (tc *TestContext) WithURIParams(params map[string]string) *TestContext {
+	ginParams := make(gin.Params, 0, len(params))
+	for key, value := range params {
+		ginParams = append(ginParams, gin.Param{Key: key, Value: value})
+	}
+	tc.Ctx.Params = ginParams
+	return tc
+}
+
+// WithQueryParams sets query parameters on the request URL.
+// This is used for "Query Parameters" which appear after the '?' in the URL.
+// Unlike path parameters, these are not part of the route definition but are optional
+// modifiers for the request (e.g., filtering, pagination).
+//
+// Example:
+//
+//	Target: /bookmarks?page=1&limit=10
+//	Usage:  .WithQueryParams(map[string]string{
+//	    "page":  "1",
+//	    "limit": "10",
+//	})
+//
+// Parameters:
+//   - params: Map of query parameter names to values
+//
+// Returns the TestContext for method chaining.
+func (tc *TestContext) WithQueryParams(params map[string]string) *TestContext {
+	q := tc.Ctx.Request.URL.Query()
+	for key, value := range params {
+		q.Add(key, value)
+	}
+	tc.Ctx.Request.URL.RawQuery = q.Encode()
+	return tc
+}

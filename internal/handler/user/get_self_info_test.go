@@ -55,12 +55,14 @@ func TestUserHandler_GetSelfInfo(t *testing.T) {
 					ctx,
 					"test-user-id",
 				).Return(&model.User{
-					ID:          "test-user-id",
+					Base: model.Base{
+						ID:        "test-user-id",
+						CreatedAt: fixedTime,
+						UpdatedAt: fixedTime,
+					},
 					Username:    "testuser",
 					DisplayName: "Test User",
 					Email:       "test@example.com",
-					CreatedAt:   fixedTime,
-					UpdatedAt:   fixedTime,
 				}, nil)
 				return svcMock
 			},
