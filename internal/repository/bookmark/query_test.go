@@ -21,6 +21,7 @@ func TestBookmarkRepo_GetBookmarks(t *testing.T) {
 		expectedLen   int
 		expectedTotal int64
 		expectedError error
+		expectAnyErr  bool // true to check for any error, not specific type
 	}{
 		{
 			name: "success - get existing bookmarks",
@@ -76,6 +77,20 @@ func TestBookmarkRepo_GetBookmarks(t *testing.T) {
 			expectedLen:   2,
 			expectedTotal: 3, // 1 (fixture) + 2 (extra)
 		},
+		{
+			name: "error - database error (disconnected)",
+			setupDB: func(t *testing.T) *gorm.DB {
+				db := fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
+				// Close connection to simulate DB error
+				sqlDB, _ := db.DB()
+				sqlDB.Close()
+				return db
+			},
+			inputUserID:  fixture.FixtureUserOneID,
+			inputLimit:   10,
+			inputOffset:  0,
+			expectAnyErr: true, // Any database error is expected
+		},
 	}
 
 	for _, tc := range testCases {
@@ -87,6 +102,11 @@ func TestBookmarkRepo_GetBookmarks(t *testing.T) {
 			repo := NewRepository(db)
 
 			bookmarks, total, err := repo.GetBookmarks(ctx, tc.inputUserID, tc.inputLimit, tc.inputOffset)
+
+			if tc.expectAnyErr {
+				assert.Error(t, err)
+				return
+			}
 
 			if tc.expectedError != nil {
 				assert.ErrorIs(t, err, tc.expectedError)

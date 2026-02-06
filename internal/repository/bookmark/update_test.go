@@ -20,6 +20,7 @@ func TestBookmarkRepo_UpdateBookmark(t *testing.T) {
 		inputDescription string
 		inputURL         string
 		expectedErr      error
+		expectAnyErr     bool // true to check for any error, not specific type
 		verifyFunc       func(t *testing.T, db *gorm.DB)
 	}{
 		{
@@ -67,6 +68,21 @@ func TestBookmarkRepo_UpdateBookmark(t *testing.T) {
 			inputURL:         "https://updated-example.com",
 			expectedErr:      dbutils.ErrNotFoundType, // Should return not found for security
 		},
+		{
+			name: "error - database error (disconnected)",
+			setupDB: func(t *testing.T) *gorm.DB {
+				db := fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
+				// Close connection to simulate DB error
+				sqlDB, _ := db.DB()
+				sqlDB.Close()
+				return db
+			},
+			inputBookmarkID:  fixture.FixtureBookmarkOneID,
+			inputUserID:      fixture.FixtureUserOneID,
+			inputDescription: "Description",
+			inputURL:         "https://example.com",
+			expectAnyErr:     true, // Any database error is expected
+		},
 	}
 
 	for _, tc := range testCases {
@@ -78,6 +94,11 @@ func TestBookmarkRepo_UpdateBookmark(t *testing.T) {
 			repo := NewRepository(db)
 
 			err := repo.UpdateBookmark(ctx, tc.inputBookmarkID, tc.inputUserID, tc.inputDescription, tc.inputURL)
+
+			if tc.expectAnyErr {
+				assert.Error(t, err)
+				return
+			}
 
 			if tc.expectedErr != nil {
 				assert.ErrorIs(t, err, tc.expectedErr)
