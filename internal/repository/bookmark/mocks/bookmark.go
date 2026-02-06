@@ -44,6 +44,24 @@ func (_m *Repository) CreateBookmark(ctx context.Context, _a1 *model.Bookmark) (
 	return r0, r1
 }
 
+// DeleteBookmark provides a mock function with given fields: ctx, bookmarkID, userID
+func (_m *Repository) DeleteBookmark(ctx context.Context, bookmarkID string, userID string) error {
+	ret := _m.Called(ctx, bookmarkID, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteBookmark")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, bookmarkID, userID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // GetBookmarks provides a mock function with given fields: ctx, userID, limit, offset
 func (_m *Repository) GetBookmarks(ctx context.Context, userID string, limit int, offset int) ([]*model.Bookmark, int64, error) {
 	ret := _m.Called(ctx, userID, limit, offset)

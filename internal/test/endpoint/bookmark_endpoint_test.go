@@ -400,3 +400,108 @@ func TestBookmarkEndpoint_Update(t *testing.T) {
 		})
 	}
 }
+
+// TestBookmarkEndpoint_Delete validates the DELETE /v1/bookmarks/{id} endpoint.
+func TestBookmarkEndpoint_Delete(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name           string
+		authToken      string
+		bookmarkID     string
+		setupMock      func(*jwtMocks.JWTValidator) jwt.MapClaims
+		expectedStatus int
+		expectedBody   map[string]any
+	}{
+		{
+			name:       "success - delete own bookmark",
+			authToken:  testValidAuthToken,
+			bookmarkID: fixture.FixtureBookmarkOneID,
+			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", fixture.FixtureUserOneID))
+				m.On("ValidateToken", mock.Anything).Return(claims, nil)
+				return claims
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]any{
+				"message": "Success",
+			},
+		},
+		{
+			name:       "error - delete another user's bookmark",
+			authToken:  testValidAuthToken,
+			bookmarkID: fixture.FixtureBookmarkOneID, // Belongs to User One
+			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
+				// User Two trying to delete User One's bookmark
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", fixture.FixtureUserTwoID))
+				m.On("ValidateToken", mock.Anything).Return(claims, nil)
+				return claims
+			},
+			expectedStatus: http.StatusNotFound,
+			expectedBody: map[string]any{
+				"message": "Bookmark not found",
+			},
+		},
+		{
+			name:       "error - bookmark not found",
+			authToken:  testValidAuthToken,
+			bookmarkID: "00000000-0000-0000-0000-000000000000",
+			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
+				claims := fixture.DefaultJWTClaims(fixture.WithClaim("sub", fixture.FixtureUserOneID))
+				m.On("ValidateToken", mock.Anything).Return(claims, nil)
+				return claims
+			},
+			expectedStatus: http.StatusNotFound,
+			expectedBody: map[string]any{
+				"message": "Bookmark not found",
+			},
+		},
+		{
+			name:       "error - unauthorized",
+			authToken:  "Bearer invalid",
+			bookmarkID: fixture.FixtureBookmarkOneID,
+			setupMock: func(m *jwtMocks.JWTValidator) jwt.MapClaims {
+				m.On("ValidateToken", mock.Anything).Return(nil, jwt.ErrTokenInvalidClaims)
+				return nil
+			},
+			expectedStatus: http.StatusUnauthorized,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create test engine with helper and Bookmark fixture
+			testEngine := NewTestEngine(&TestEngineOpts{
+				T:       t,
+				Fixture: &fixture.BookmarkCommonTestDB{},
+			})
+
+			// Setup mock expectations
+			tc.setupMock(testEngine.JwtValidator)
+
+			// Create request
+			req := httptest.NewRequest(http.MethodDelete, "/v1/bookmarks/"+tc.bookmarkID, nil)
+			if tc.authToken != "" {
+				req.Header.Set("Authorization", tc.authToken)
+			}
+
+			rec := httptest.NewRecorder()
+			testEngine.Engine.ServeHTTP(rec, req)
+
+			// Assert status code
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+
+			// Assert response body if expected
+			if tc.expectedBody != nil {
+				var body map[string]any
+				err := json.Unmarshal(rec.Body.Bytes(), &body)
+				assert.NoError(t, err)
+				for key, expected := range tc.expectedBody {
+					assert.Equal(t, expected, body[key])
+				}
+			}
+		})
+	}
+}
