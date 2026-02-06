@@ -332,6 +332,43 @@ paths:
       tags:
       - Bookmark
   /v1/bookmarks/{id}:
+    delete:
+      description: Delete an existing bookmark. Only the bookmark owner can delete
+        it.
+      parameters:
+      - description: Bookmark ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/response.Message'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/response.Message'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Message'
+        "404":
+          description: Bookmark not found
+          schema:
+            $ref: '#/definitions/response.Message'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.Message'
+      security:
+      - BearerAuth: []
+      summary: Delete a bookmark
+      tags:
+      - Bookmark
     put:
       consumes:
       - application/json
