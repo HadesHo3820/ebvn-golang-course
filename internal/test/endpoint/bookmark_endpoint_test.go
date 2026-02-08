@@ -297,6 +297,7 @@ func TestBookmarkEndpoint_Update(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
+				"data":    nil,
 				"message": "Bookmark updated successfully",
 			},
 		},

@@ -122,6 +122,7 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
+				"data": []any{},
 				"metadata": map[string]any{
 					"current_page":  float64(2),
 					"page_size":     float64(5),
