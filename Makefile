@@ -145,6 +145,7 @@ COVERAGE_THRESHOLD=80
 #   1 - Tests failed OR coverage < threshold
 # -----------------------------------------------------------------------------
 test:
+	go clean -testcache
 	go test ./... -coverprofile=coverage.tmp -covermode=atomic -coverpkg=./... -p 1
 	grep -vE "$(COVERAGE_EXCLUDE)" coverage.tmp > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
