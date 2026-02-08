@@ -45,7 +45,7 @@ func TestBookmarkHandler_DeleteBookmark(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
-				"message": "Success",
+				"message": "Bookmark deleted successfully",
 			},
 		},
 		{

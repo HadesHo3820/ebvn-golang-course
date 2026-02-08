@@ -130,13 +130,20 @@ func TestBookmarkEndpoint_Create(t *testing.T) {
 				var body map[string]any
 				err := json.Unmarshal(rec.Body.Bytes(), &body)
 				assert.NoError(t, err)
+
+				// Check message
+				assert.Contains(t, body, "message")
+
+				// Check nested data fields
+				data, ok := body["data"].(map[string]any)
+				assert.True(t, ok, "data should be a map")
 				for _, field := range tc.expectedFields {
-					assert.Contains(t, body, field)
+					assert.Contains(t, data, field)
 				}
-				// Verify specific values
-				assert.Equal(t, tc.requestBody["description"], body["description"])
-				assert.Equal(t, tc.requestBody["url"], body["url"])
-				assert.NotEmpty(t, body["code"])
+				// Verify specific values from nested data
+				assert.Equal(t, tc.requestBody["description"], data["description"])
+				assert.Equal(t, tc.requestBody["url"], data["url"])
+				assert.NotEmpty(t, data["code"])
 			}
 		})
 	}
@@ -290,7 +297,7 @@ func TestBookmarkEndpoint_Update(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
-				"message": "Success",
+				"message": "Bookmark updated successfully",
 			},
 		},
 		{
@@ -424,7 +431,7 @@ func TestBookmarkEndpoint_Delete(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
-				"message": "Success",
+				"message": "Bookmark deleted successfully",
 			},
 		},
 		{

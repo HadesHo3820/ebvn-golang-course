@@ -3,8 +3,8 @@ package bookmark
 import (
 	"context"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
-	"github.com/HadesHo3820/ebvn-golang-course/pkg/pagination"
 )
 
 // GetBookmarks retrieves a paginated list of bookmarks for the specified user.
@@ -17,20 +17,25 @@ import (
 //   - req: Pointer to Pagination request with Page and Limit
 //
 // Returns:
-//   - *pagination.Response: Standard paginated response wrapper
+//   - *dto.Response: Standard paginated response wrapper
 //   - error: Database or internal error
-func (s *BookmarkSvc) GetBookmarks(ctx context.Context, userID string, req *pagination.Request) (*pagination.Response[*model.Bookmark], error) {
+func (s *BookmarkSvc) GetBookmarks(ctx context.Context, userID string, req *dto.Request) (*dto.Response[*model.Bookmark], error) {
 	limit := req.GetLimit()
 	offset := req.GetOffset()
 
-	bookmarks, total, err := s.repo.GetBookmarks(ctx, userID, limit, offset)
+	bookmarks, err := s.repo.GetBookmarks(ctx, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 
-	meta := pagination.CalculateMetadata(total, req.Page, limit)
+	count, err := s.repo.GetBookmarksCount(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 
-	return &pagination.Response[*model.Bookmark]{
+	meta := dto.CalculateMetadata(count, req.Page, limit)
+
+	return &dto.Response[*model.Bookmark]{
 		Data:     bookmarks,
 		Metadata: meta,
 	}, nil

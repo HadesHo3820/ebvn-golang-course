@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/utils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
@@ -24,24 +25,15 @@ type deleteBookmarkInput struct {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id   path      string           true  "Bookmark ID (UUID)"
-// @Success      200  {object}  response.Message "Success"
+// @Success      200  {object}  dto.SuccessResponse[any] "Success"
 // @Failure      400  {object}  response.Message "Invalid input"
 // @Failure      401  {object}  response.Message "Unauthorized"
 // @Failure      404  {object}  response.Message "Bookmark not found"
 // @Failure      500  {object}  response.Message "Internal server error"
 // @Router       /v1/bookmarks/{id} [delete]
 func (h *bookmarkHandler) DeleteBookmark(c *gin.Context) {
-	// Get user id from JWT token
-	uid, err := utils.GetUIDFromRequest(c)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, &response.Message{
-			Message: "Invalid token",
-		})
-		return
-	}
-
 	// Getting input from request and validate
-	input, err := utils.BindInputFromRequest[deleteBookmarkInput](c)
+	input, uid, err := utils.BindInputFromRequestWithAuth[deleteBookmarkInput](c)
 	if err != nil {
 		return
 	}
@@ -60,7 +52,7 @@ func (h *bookmarkHandler) DeleteBookmark(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, &response.Message{
-		Message: "Success",
+	c.JSON(http.StatusOK, dto.SuccessResponse[any]{
+		Message: "Bookmark deleted successfully",
 	})
 }

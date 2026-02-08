@@ -63,7 +63,7 @@ func (_m *Repository) DeleteBookmark(ctx context.Context, bookmarkID string, use
 }
 
 // GetBookmarks provides a mock function with given fields: ctx, userID, limit, offset
-func (_m *Repository) GetBookmarks(ctx context.Context, userID string, limit int, offset int) ([]*model.Bookmark, int64, error) {
+func (_m *Repository) GetBookmarks(ctx context.Context, userID string, limit int, offset int) ([]*model.Bookmark, error) {
 	ret := _m.Called(ctx, userID, limit, offset)
 
 	if len(ret) == 0 {
@@ -71,9 +71,8 @@ func (_m *Repository) GetBookmarks(ctx context.Context, userID string, limit int
 	}
 
 	var r0 []*model.Bookmark
-	var r1 int64
-	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, int, int) ([]*model.Bookmark, int64, error)); ok {
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, int) ([]*model.Bookmark, error)); ok {
 		return rf(ctx, userID, limit, offset)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string, int, int) []*model.Bookmark); ok {
@@ -84,19 +83,41 @@ func (_m *Repository) GetBookmarks(ctx context.Context, userID string, limit int
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, int, int) int64); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, int) error); ok {
 		r1 = rf(ctx, userID, limit, offset)
 	} else {
-		r1 = ret.Get(1).(int64)
+		r1 = ret.Error(1)
 	}
 
-	if rf, ok := ret.Get(2).(func(context.Context, string, int, int) error); ok {
-		r2 = rf(ctx, userID, limit, offset)
+	return r0, r1
+}
+
+// GetBookmarksCount provides a mock function with given fields: ctx, userID
+func (_m *Repository) GetBookmarksCount(ctx context.Context, userID string) (int64, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBookmarksCount")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (int64, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) int64); ok {
+		r0 = rf(ctx, userID)
 	} else {
-		r2 = ret.Error(2)
+		r0 = ret.Get(0).(int64)
 	}
 
-	return r0, r1, r2
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // UpdateBookmark provides a mock function with given fields: ctx, bookmarkID, userID, description, url

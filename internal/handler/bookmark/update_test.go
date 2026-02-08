@@ -52,7 +52,7 @@ func TestBookmarkHandler_UpdateBookmark(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
-				"message": "Success",
+				"message": "Bookmark updated successfully",
 			},
 		},
 		{

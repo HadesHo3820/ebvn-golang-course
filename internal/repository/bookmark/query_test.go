@@ -19,7 +19,6 @@ func TestBookmarkRepo_GetBookmarks(t *testing.T) {
 		inputLimit    int
 		inputOffset   int
 		expectedLen   int
-		expectedTotal int64
 		expectedError error
 		expectAnyErr  bool // true to check for any error, not specific type
 	}{
@@ -28,22 +27,20 @@ func TestBookmarkRepo_GetBookmarks(t *testing.T) {
 			setupDB: func(t *testing.T) *gorm.DB {
 				return fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
 			},
-			inputUserID:   fixture.FixtureUserOneID,
-			inputLimit:    10,
-			inputOffset:   0,
-			expectedLen:   1, // Fixture creates 1 bookmark for UserOne
-			expectedTotal: 1,
+			inputUserID: fixture.FixtureUserOneID,
+			inputLimit:  10,
+			inputOffset: 0,
+			expectedLen: 1, // Fixture creates 1 bookmark for UserOne
 		},
 		{
 			name: "success - get empty for non-existent user",
 			setupDB: func(t *testing.T) *gorm.DB {
 				return fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
 			},
-			inputUserID:   "non-existent-uuid",
-			inputLimit:    10,
-			inputOffset:   0,
-			expectedLen:   0,
-			expectedTotal: 0,
+			inputUserID: "non-existent-uuid",
+			inputLimit:  10,
+			inputOffset: 0,
+			expectedLen: 0,
 		},
 		{
 			name: "success - pagination limit",
@@ -66,16 +63,14 @@ func TestBookmarkRepo_GetBookmarks(t *testing.T) {
 						Description: "Extra 2",
 					},
 				}
-				// Use CreateInBatches or Save. Create might trigger hooks, which is fine if ID is set.
 				err := db.Create(&extraBookmarks).Error
 				assert.NoError(t, err)
 				return db
 			},
-			inputUserID:   fixture.FixtureUserOneID,
-			inputLimit:    2,
-			inputOffset:   0,
-			expectedLen:   2,
-			expectedTotal: 3, // 1 (fixture) + 2 (extra)
+			inputUserID: fixture.FixtureUserOneID,
+			inputLimit:  2,
+			inputOffset: 0,
+			expectedLen: 2,
 		},
 		{
 			name: "error - database error (disconnected)",
@@ -101,7 +96,7 @@ func TestBookmarkRepo_GetBookmarks(t *testing.T) {
 			db := tc.setupDB(t)
 			repo := NewRepository(db)
 
-			bookmarks, total, err := repo.GetBookmarks(ctx, tc.inputUserID, tc.inputLimit, tc.inputOffset)
+			bookmarks, err := repo.GetBookmarks(ctx, tc.inputUserID, tc.inputLimit, tc.inputOffset)
 
 			if tc.expectAnyErr {
 				assert.Error(t, err)
@@ -115,7 +110,94 @@ func TestBookmarkRepo_GetBookmarks(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Len(t, bookmarks, tc.expectedLen)
-			assert.Equal(t, tc.expectedTotal, total)
+		})
+	}
+}
+
+func TestBookmarkRepo_GetBookmarksCount(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		setupDB       func(t *testing.T) *gorm.DB
+		inputUserID   string
+		expectedCount int64
+		expectAnyErr  bool
+	}{
+		{
+			name: "success - count existing bookmarks",
+			setupDB: func(t *testing.T) *gorm.DB {
+				return fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
+			},
+			inputUserID:   fixture.FixtureUserOneID,
+			expectedCount: 1, // Fixture creates 1 bookmark for UserOne
+		},
+		{
+			name: "success - count zero for non-existent user",
+			setupDB: func(t *testing.T) *gorm.DB {
+				return fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
+			},
+			inputUserID:   "non-existent-uuid",
+			expectedCount: 0,
+		},
+		{
+			name: "success - count multiple bookmarks",
+			setupDB: func(t *testing.T) *gorm.DB {
+				db := fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
+				// Add 2 more bookmarks for User 1 to have total 3
+				extraBookmarks := []*model.Bookmark{
+					{
+						Base:        model.Base{ID: "extra-1"},
+						Code:        "extra1",
+						URL:         "https://example.com/1",
+						UserID:      fixture.FixtureUserOneID,
+						Description: "Extra 1",
+					},
+					{
+						Base:        model.Base{ID: "extra-2"},
+						Code:        "extra2",
+						URL:         "https://example.com/2",
+						UserID:      fixture.FixtureUserOneID,
+						Description: "Extra 2",
+					},
+				}
+				err := db.Create(&extraBookmarks).Error
+				assert.NoError(t, err)
+				return db
+			},
+			inputUserID:   fixture.FixtureUserOneID,
+			expectedCount: 3, // 1 (fixture) + 2 (extra)
+		},
+		{
+			name: "error - database error (disconnected)",
+			setupDB: func(t *testing.T) *gorm.DB {
+				db := fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
+				sqlDB, _ := db.DB()
+				sqlDB.Close()
+				return db
+			},
+			inputUserID:  fixture.FixtureUserOneID,
+			expectAnyErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+
+			db := tc.setupDB(t)
+			repo := NewRepository(db)
+
+			count, err := repo.GetBookmarksCount(ctx, tc.inputUserID)
+
+			if tc.expectAnyErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expectedCount, count)
 		})
 	}
 }

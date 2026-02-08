@@ -72,13 +72,16 @@ func TestBookmarkHandler_CreateBookmark(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
-				"id":          "bm-1",
-				"description": testBookmarkDesc,
-				"url":         testBookmarkURL,
-				"code":        testBookmarkCode,
-				"user_id":     testUserID,
-				"created_at":  fixedTime.Format(time.RFC3339Nano),
-				"updated_at":  fixedTime.Format(time.RFC3339Nano),
+				"message": "Bookmark created successfully",
+				"data": map[string]any{
+					"id":          "bm-1",
+					"description": testBookmarkDesc,
+					"url":         testBookmarkURL,
+					"code":        testBookmarkCode,
+					"user_id":     testUserID,
+					"created_at":  fixedTime.Format(time.RFC3339Nano),
+					"updated_at":  fixedTime.Format(time.RFC3339Nano),
+				},
 			},
 		},
 		{

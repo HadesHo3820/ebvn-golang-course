@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	repoMocks "github.com/HadesHo3820/ebvn-golang-course/internal/repository/bookmark/mocks"
-	"github.com/HadesHo3820/ebvn-golang-course/pkg/pagination"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils/mocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,15 +23,15 @@ func TestBookmarkSvc_GetBookmarks(t *testing.T) {
 	testCases := []struct {
 		name           string
 		inputUserID    string
-		inputReq       *pagination.Request
+		inputReq       *dto.Request
 		setupMock      func(mockRepo *repoMocks.Repository, ctx context.Context)
 		expectedErr    error
-		expectedOutput *pagination.Response[*model.Bookmark]
+		expectedOutput *dto.Response[*model.Bookmark]
 	}{
 		{
 			name:        "Success",
 			inputUserID: testUserID,
-			inputReq: &pagination.Request{
+			inputReq: &dto.Request{
 				Page:  testPage,
 				Limit: testLimit,
 			},
@@ -40,14 +40,16 @@ func TestBookmarkSvc_GetBookmarks(t *testing.T) {
 					Return([]*model.Bookmark{
 						{Base: model.Base{ID: "bm-1"}},
 						{Base: model.Base{ID: "bm-2"}},
-					}, testTotal, nil)
+					}, nil)
+				mockRepo.On("GetBookmarksCount", ctx, testUserID).
+					Return(testTotal, nil)
 			},
-			expectedOutput: &pagination.Response[*model.Bookmark]{
+			expectedOutput: &dto.Response[*model.Bookmark]{
 				Data: []*model.Bookmark{
 					{Base: model.Base{ID: "bm-1"}},
 					{Base: model.Base{ID: "bm-2"}},
 				},
-				Metadata: pagination.Metadata{
+				Metadata: dto.Metadata{
 					CurrentPage:  testPage,
 					PageSize:     testLimit,
 					FirstPage:    1,
@@ -57,17 +59,32 @@ func TestBookmarkSvc_GetBookmarks(t *testing.T) {
 			},
 		},
 		{
-			name:        "Error - Repository Failed",
+			name:        "Error - GetBookmarks Failed",
 			inputUserID: testUserID,
-			inputReq: &pagination.Request{
+			inputReq: &dto.Request{
 				Page:  testPage,
 				Limit: testLimit,
 			},
 			setupMock: func(mockRepo *repoMocks.Repository, ctx context.Context) {
 				mockRepo.On("GetBookmarks", ctx, testUserID, testLimit, testOffset).
-					Return(nil, int64(0), errors.New("db error"))
+					Return(nil, errors.New("db error"))
 			},
 			expectedErr: errors.New("db error"),
+		},
+		{
+			name:        "Error - GetBookmarksCount Failed",
+			inputUserID: testUserID,
+			inputReq: &dto.Request{
+				Page:  testPage,
+				Limit: testLimit,
+			},
+			setupMock: func(mockRepo *repoMocks.Repository, ctx context.Context) {
+				mockRepo.On("GetBookmarks", ctx, testUserID, testLimit, testOffset).
+					Return([]*model.Bookmark{}, nil)
+				mockRepo.On("GetBookmarksCount", ctx, testUserID).
+					Return(int64(0), errors.New("count error"))
+			},
+			expectedErr: errors.New("count error"),
 		},
 	}
 

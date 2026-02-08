@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	serviceMocks "github.com/HadesHo3820/ebvn-golang-course/internal/service/bookmark/mocks"
 	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
-	"github.com/HadesHo3820/ebvn-golang-course/pkg/pagination"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -49,10 +49,10 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 				svcMock.On("GetBookmarks",
 					mock.Anything,
 					testUserID,
-					mock.MatchedBy(func(req *pagination.Request) bool {
+					mock.MatchedBy(func(req *dto.Request) bool {
 						return req.Page == 0 && req.Limit == 0 // Defaults before validation/sanitization in service/repo layer
 					}),
-				).Return(&pagination.Response[*model.Bookmark]{
+				).Return(&dto.Response[*model.Bookmark]{
 					Data: []*model.Bookmark{
 						{
 							Base: model.Base{
@@ -66,7 +66,7 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 							UserID:      testUserID,
 						},
 					},
-					Metadata: pagination.Metadata{
+					Metadata: dto.Metadata{
 						CurrentPage:  1,
 						PageSize:     10,
 						TotalRecords: 1,
@@ -109,10 +109,10 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 				svcMock.On("GetBookmarks",
 					mock.Anything,
 					testUserID,
-					&pagination.Request{Page: 2, Limit: 5},
-				).Return(&pagination.Response[*model.Bookmark]{
+					&dto.Request{Page: 2, Limit: 5},
+				).Return(&dto.Response[*model.Bookmark]{
 					Data: []*model.Bookmark{},
-					Metadata: pagination.Metadata{
+					Metadata: dto.Metadata{
 						CurrentPage:  2,
 						PageSize:     5,
 						TotalRecords: 20,
@@ -122,7 +122,6 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
-				"data": []any{},
 				"metadata": map[string]any{
 					"current_page":  float64(2),
 					"page_size":     float64(5),
