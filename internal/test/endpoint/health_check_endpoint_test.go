@@ -56,7 +56,7 @@ func TestHealthCheckEndpoint(t *testing.T) {
 				return rec
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"message":"OK","service_name":"test-service","instance_id":"1234"}`,
+			expectedBody:   `{"message":"OK","data":{"service_name":"test-service","instance_id":"1234"}}`,
 		},
 	}
 

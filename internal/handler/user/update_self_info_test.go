@@ -68,6 +68,7 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
 				"message": updateSelfInfoSuccessMessage,
+				"data":    nil,
 			},
 		},
 		{
@@ -87,6 +88,7 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
 				"message": updateSelfInfoSuccessMessage,
+			"data":    nil,
 			},
 		},
 		{
@@ -106,6 +108,7 @@ func TestUserHandler_UpdateSelfInfo(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
 				"message": updateSelfInfoSuccessMessage,
+			"data":    nil,
 			},
 		},
 		{

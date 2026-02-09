@@ -3,6 +3,7 @@ package url
 import (
 	"net/http"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/utils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -21,21 +22,13 @@ type urlShortenRequest struct {
 	Exp int `json:"exp" binding:"required,gte=0,lte=604800" example:"86400"`
 }
 
-// urlShortenResponse represents the JSON response for a successful URL shortening.
-type urlShortenResponse struct {
-	// Message indicates the status of the operation.
-	Message string `json:"message" example:"Shorten URL generated successfully!"`
-	// Code is the generated short code that maps to the original URL.
-	Code string `json:"code" example:"string"`
-}
-
 // @Summary Shorten URL
 // @Description Generate a short code for the provided URL
 // @Tags URL
 // @Accept json
 // @Produce json
 // @Param request body urlShortenRequest true "URL shorten request"
-// @Success 200 {object} urlShortenResponse
+// @Success 200 {object} dto.SuccessResponse[string]
 // @Failure 400 {object} response.Message
 // @Failure 500 {object} response.Message
 // @Router /v1/links/shorten [post]
@@ -56,8 +49,8 @@ func (h *urlHandler) ShortenUrl(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, urlShortenResponse{
+	c.JSON(http.StatusOK, dto.SuccessResponse[string]{
 		Message: "Shorten URL generated successfully!",
-		Code:    code,
+		Data:    code,
 	})
 }

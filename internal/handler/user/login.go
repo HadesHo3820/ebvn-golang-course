@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/utils"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
@@ -19,13 +20,6 @@ type loginInputBody struct {
 	Password string `json:"password" validate:"required,gte=8"`
 }
 
-// loginResBody represents the response body containing the JWT token.
-type loginResBody struct {
-	Message string `json:"message"`
-	// Token is the JWT authentication token.
-	Data string `json:"data"`
-}
-
 // Login handles user login requests.
 // It validates credentials, authenticates the user, and returns a JWT token.
 //
@@ -35,7 +29,7 @@ type loginResBody struct {
 // @Accept json
 // @Produce json
 // @Param body body loginInputBody true "User login credentials"
-// @Success 200 {object} loginResBody
+// @Success 200 {object} dto.SuccessResponse[string]
 // @Failure 400 {object} response.Message "Invalid username or password"
 // @Failure 500 {object} response.Message "Internal server error"
 // @Router /v1/users/login [post]
@@ -63,7 +57,8 @@ func (u *userHandler) Login(c *gin.Context) {
 	}
 
 	// return token
-	c.JSON(http.StatusOK, &loginResBody{
+	c.JSON(http.StatusOK, dto.SuccessResponse[string]{
 		Message: "Logged in successfully!",
-		Data:    token})
+		Data:    token,
+	})
 }

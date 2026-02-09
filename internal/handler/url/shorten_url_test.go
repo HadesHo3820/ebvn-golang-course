@@ -56,7 +56,7 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
 				"message": "Shorten URL generated successfully!",
-				"code":    "abc1234",
+				"data":    "abc1234",
 			},
 		},
 		{
@@ -74,7 +74,7 @@ func TestUrlShortenHandler_ShortenUrl(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
 				"message": "Shorten URL generated successfully!",
-				"code":    "xyz7890",
+				"data":    "xyz7890",
 			},
 		},
 		{

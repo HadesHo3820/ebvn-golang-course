@@ -59,9 +59,9 @@ func TestUrlShortenEndpoint(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			validateBody: func(t *testing.T, body map[string]interface{}) {
 				assert.Equal(t, "Shorten URL generated successfully!", body["message"])
-				assert.NotEmpty(t, body["code"])
+				assert.NotEmpty(t, body["data"])
 				// Code should be 7 characters
-				code, ok := body["code"].(string)
+				code, ok := body["data"].(string)
 				assert.True(t, ok)
 				assert.Len(t, code, 7)
 			},
