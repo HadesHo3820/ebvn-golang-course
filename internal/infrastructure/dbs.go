@@ -8,10 +8,29 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateRedisConn creates a new redis connection
-func CreateRedisConn() *redis.Client {
-	// Create redis db connection
-	redisClient, err := redisPkg.NewClient("")
+// CreateRedisGeneralConn creates a Redis connection for general purposes (DB 0).
+// This connection is reserved for non-cache data such as:
+//   - Session storage
+//   - Rate limiting counters
+//   - Temporary application state
+//   - Feature flags
+//
+// Returns a Redis client connected to database 0.
+func CreateRedisGeneralConn() *redis.Client {
+	redisClient, err := redisPkg.NewClientWithDB("", 0)
+	common.HandleError(err)
+	return redisClient
+}
+
+// CreateRedisCacheConn creates a Redis connection specifically for caching (DB 1).
+// This connection should be used for all cache-related operations such as:
+//   - Bookmark caching
+//   - Query result caching
+//   - Any other application-level caching
+//
+// Returns a Redis client connected to database 1.
+func CreateRedisCacheConn() *redis.Client {
+	redisClient, err := redisPkg.NewClientWithDB("", 1)
 	common.HandleError(err)
 	return redisClient
 }

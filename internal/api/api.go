@@ -16,8 +16,9 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/user"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/repository"
 	bookmarkRepo "github.com/HadesHo3820/ebvn-golang-course/internal/repository/bookmark"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/repository/cache"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
-	bookmarkSvc "github.com/HadesHo3820/ebvn-golang-course/internal/service/bookmark"
+	bookmarkService "github.com/HadesHo3820/ebvn-golang-course/internal/service/bookmark"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/jwtutils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/utils"
@@ -40,25 +41,27 @@ type Engine interface {
 // api is the concrete implementation of the Engine interface.
 // It wraps a Gin engine and manages the application's HTTP routing.
 type api struct {
-	app             *gin.Engine
-	cfg             *Config
-	redisClient     *redis.Client
-	db              *gorm.DB
-	keyGen          stringutils.KeyGenerator
-	passwordHashing utils.PasswordHashing
-	jwtGen          jwtutils.JWTGenerator
-	jwtValidator    jwtutils.JWTValidator
+	app              *gin.Engine
+	cfg              *Config
+	redisClient      *redis.Client
+	cacheRedisClient *redis.Client
+	db               *gorm.DB
+	keyGen           stringutils.KeyGenerator
+	passwordHashing  utils.PasswordHashing
+	jwtGen           jwtutils.JWTGenerator
+	jwtValidator     jwtutils.JWTValidator
 }
 
 type EngineOpts struct {
-	Engine          *gin.Engine
-	Cfg             *Config
-	RedisClient     *redis.Client
-	SqlDB           *gorm.DB
-	KeyGen          stringutils.KeyGenerator
-	PasswordHashing utils.PasswordHashing
-	JwtGen          jwtutils.JWTGenerator
-	JwtValidator    jwtutils.JWTValidator
+	Engine           *gin.Engine
+	Cfg              *Config
+	RedisClient      *redis.Client
+	CacheRedisClient *redis.Client
+	SqlDB            *gorm.DB
+	KeyGen           stringutils.KeyGenerator
+	PasswordHashing  utils.PasswordHashing
+	JwtGen           jwtutils.JWTGenerator
+	JwtValidator     jwtutils.JWTValidator
 }
 
 // New creates and initializes a new API server.
@@ -66,14 +69,15 @@ type EngineOpts struct {
 // Returns an Engine interface to hide the implementation details.
 func New(opts *EngineOpts) Engine {
 	a := &api{
-		app:             opts.Engine,
-		cfg:             opts.Cfg,
-		redisClient:     opts.RedisClient,
-		keyGen:          opts.KeyGen,
-		passwordHashing: opts.PasswordHashing,
-		db:              opts.SqlDB,
-		jwtGen:          opts.JwtGen,
-		jwtValidator:    opts.JwtValidator,
+		app:              opts.Engine,
+		cfg:              opts.Cfg,
+		redisClient:      opts.RedisClient,
+		keyGen:           opts.KeyGen,
+		passwordHashing:  opts.PasswordHashing,
+		db:               opts.SqlDB,
+		jwtGen:           opts.JwtGen,
+		jwtValidator:     opts.JwtValidator,
+		cacheRedisClient: opts.CacheRedisClient,
 	}
 	a.RegisterEP()
 	return a
@@ -116,6 +120,9 @@ type handlers struct {
 //
 // Returns a handlers struct containing all initialized handler instances.
 func (a *api) initHandlers() *handlers {
+	// Init cache layer
+	cacheDB := cache.NewRedisCache(a.cacheRedisClient)
+
 	// Create health check service with Redis connectivity checker
 	healthCheckRepo := repository.NewRedisHealthChecker(a.redisClient)
 	healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID, healthCheckRepo)
@@ -133,8 +140,9 @@ func (a *api) initHandlers() *handlers {
 
 	// Init bookmark handler
 	bookmarkRepo := bookmarkRepo.NewRepository(a.db)
-	bookmarkSvc := bookmarkSvc.NewBookmarkSvc(bookmarkRepo, a.keyGen)
-	bookmarkHandler := bookmark.NewHandler(bookmarkSvc)
+	bookmarkSvc := bookmarkService.NewBookmarkSvc(bookmarkRepo, a.keyGen)
+	bookmarkSvcWithCache := bookmarkService.NewServiceWithCache(bookmarkSvc, cacheDB)
+	bookmarkHandler := bookmark.NewHandler(bookmarkSvcWithCache)
 
 	return &handlers{
 		healthCheckHandler: healthcheck.NewHealthCheckHandler(healthSvc),

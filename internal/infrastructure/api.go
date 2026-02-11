@@ -33,9 +33,10 @@ func CreateAPI() api.Engine {
 
 	// Init config
 	cfg := CreateAPIConfig()
-
-	// Init redis
-	redisClient := CreateRedisConn()
+    
+	// Init redis - 
+	redisClient := CreateRedisGeneralConn()
+	cacheRedisClient := CreateRedisCacheConn()
 
 	// Init sql DB
 	sqlDB := CreateSQLDBWithMigration()
@@ -52,13 +53,14 @@ func CreateAPI() api.Engine {
 	app := gin.New()
 
 	return api.New(&api.EngineOpts{
-		Engine:          app,
-		Cfg:             cfg,
-		RedisClient:     redisClient,
-		SqlDB:           sqlDB,
-		KeyGen:          keyGen,
-		PasswordHashing: passwordHashing,
-		JwtGen:          jwtGen,
-		JwtValidator:    jwtValidator,
+		Engine:           app,
+		Cfg:              cfg,
+		RedisClient:      redisClient,
+		CacheRedisClient: cacheRedisClient,
+		SqlDB:            sqlDB,
+		KeyGen:           keyGen,
+		PasswordHashing:  passwordHashing,
+		JwtGen:           jwtGen,
+		JwtValidator:     jwtValidator,
 	})
 }
