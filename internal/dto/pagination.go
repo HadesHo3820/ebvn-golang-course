@@ -18,9 +18,15 @@ type Request struct {
 	Limit int `form:"limit" json:"limit"`
 }
 
-// GetOffset calculates the database offset based on Page and Limit.
-// It also applies default values if Page or Limit are invalid.
-func (r *Request) GetOffset() int {
+// Sanitize normalizes the Page and Limit values to ensure they are within valid ranges.
+// This method mutates the struct in place and should be called before using Page/Limit
+// in any operations (e.g., cache key generation, database queries).
+//
+// Rules:
+//   - Page < 1 → set to 1
+//   - Limit < 1 → set to DefaultLimit (10)
+//   - Limit > MaxLimit → set to MaxLimit (100)
+func (r *Request) Sanitize() {
 	if r.Page < 1 {
 		r.Page = 1
 	}
@@ -30,17 +36,19 @@ func (r *Request) GetOffset() int {
 	if r.Limit > MaxLimit {
 		r.Limit = MaxLimit
 	}
+}
+
+// GetOffset calculates the database offset based on Page and Limit.
+// It automatically sanitizes the values before calculation.
+func (r *Request) GetOffset() int {
+	r.Sanitize()
 	return (r.Page - 1) * r.Limit
 }
 
 // GetLimit returns the sanitized limit.
+// It automatically sanitizes the values before returning.
 func (r *Request) GetLimit() int {
-	if r.Limit < 1 {
-		r.Limit = DefaultLimit
-	}
-	if r.Limit > MaxLimit {
-		r.Limit = MaxLimit
-	}
+	r.Sanitize()
 	return r.Limit
 }
 
