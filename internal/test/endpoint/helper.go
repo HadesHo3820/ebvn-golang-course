@@ -100,14 +100,15 @@ func NewTestEngine(opts *TestEngineOpts) *TestEngine {
 
 	// Create API engine with dependencies
 	engine := api.New(&api.EngineOpts{
-		Engine:          gin.New(),
-		Cfg:             cfg,
-		RedisClient:     redisPkg.InitMockRedis(opts.T),
-		SqlDB:           db,
-		KeyGen:          stringutils.NewKeyGenerator(),
-		PasswordHashing: utils.NewPasswordHashing(),
-		JwtGen:          jwtGen,
-		JwtValidator:    jwtValidator,
+		Engine:           gin.New(),
+		Cfg:              cfg,
+		RedisClient:      redisPkg.InitMockRedis(opts.T),
+		CacheRedisClient: redisPkg.InitMockRedis(opts.T),
+		SqlDB:            db,
+		KeyGen:           stringutils.NewKeyGenerator(),
+		PasswordHashing:  utils.NewPasswordHashing(),
+		JwtGen:           jwtGen,
+		JwtValidator:     jwtValidator,
 	})
 
 	return &TestEngine{
