@@ -94,6 +94,34 @@ func (_m *Service) GetBookmarks(ctx context.Context, userID string, req *dto.Req
 	return r0, r1
 }
 
+// GetUrlByCode provides a mock function with given fields: ctx, code
+func (_m *Service) GetUrlByCode(ctx context.Context, code int64) (string, error) {
+	ret := _m.Called(ctx, code)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUrlByCode")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64) (string, error)); ok {
+		return rf(ctx, code)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int64) string); ok {
+		r0 = rf(ctx, code)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, int64) error); ok {
+		r1 = rf(ctx, code)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // UpdateBookmark provides a mock function with given fields: ctx, bookmarkID, userID, description, url
 func (_m *Service) UpdateBookmark(ctx context.Context, bookmarkID string, userID string, description string, url string) error {
 	ret := _m.Called(ctx, bookmarkID, userID, description, url)

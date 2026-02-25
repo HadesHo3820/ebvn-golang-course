@@ -29,7 +29,7 @@ func TestBookmarkRepo_CreateBookmark(t *testing.T) {
 			inputBookmark: &model.Bookmark{
 				UserID:      fixture.FixtureUserOneID,
 				URL:         "https://example.com/unique-url",
-				Code:        "uniq123",
+				Code:        100,
 				Description: "My Unique Bookmark",
 			},
 			verifyFunc: func(t *testing.T, db *gorm.DB, expected *model.Bookmark) {
@@ -55,13 +55,13 @@ func TestBookmarkRepo_CreateBookmark(t *testing.T) {
 			name: "error - duplicate code",
 			setupDB: func(t *testing.T) *gorm.DB {
 				db := fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
-				// This fixture already seeds FixtureBookmarkOneCode ("abc12345")
+				// This fixture already seeds FixtureBookmarkOneCode
 				return db
 			},
 			inputBookmark: &model.Bookmark{
 				UserID:      fixture.FixtureUserOneID,
 				URL:         "https://example.com/duplicate",
-				Code:        fixture.FixtureBookmarkOneCode, // Reusing existing code "abc12345"
+				Code:        fixture.FixtureBookmarkOneCode, // Reusing existing code 1
 				Description: "Duplicate Code Bookmark",
 			},
 			expectedErr: dbutils.ErrDuplicationType,

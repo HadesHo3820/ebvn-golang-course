@@ -8,7 +8,6 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	repoMocks "github.com/HadesHo3820/ebvn-golang-course/internal/repository/bookmark/mocks"
-	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,11 +94,10 @@ func TestBookmarkSvc_GetBookmarks(t *testing.T) {
 
 			// Setup mocks
 			mockRepo := repoMocks.NewRepository(t)
-			mockCodeGen := mocks.NewKeyGenerator(t)
 			tc.setupMock(mockRepo, ctx)
 
 			// Create service
-			svc := NewBookmarkSvc(mockRepo, mockCodeGen)
+			svc := NewBookmarkSvc(mockRepo)
 
 			// Execute
 			got, err := svc.GetBookmarks(ctx, tc.inputUserID, tc.inputReq)

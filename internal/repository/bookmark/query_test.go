@@ -50,14 +50,14 @@ func TestBookmarkRepo_GetBookmarks(t *testing.T) {
 				extraBookmarks := []*model.Bookmark{
 					{
 						Base:        model.Base{ID: "extra-1"},
-						Code:        "extra1",
+						Code:        100,
 						URL:         "https://example.com/1",
 						UserID:      fixture.FixtureUserOneID,
 						Description: "Extra 1",
 					},
 					{
 						Base:        model.Base{ID: "extra-2"},
-						Code:        "extra2",
+						Code:        101,
 						URL:         "https://example.com/2",
 						UserID:      fixture.FixtureUserOneID,
 						Description: "Extra 2",
@@ -148,14 +148,14 @@ func TestBookmarkRepo_GetBookmarksCount(t *testing.T) {
 				extraBookmarks := []*model.Bookmark{
 					{
 						Base:        model.Base{ID: "extra-1"},
-						Code:        "extra1",
+						Code:        100,
 						URL:         "https://example.com/1",
 						UserID:      fixture.FixtureUserOneID,
 						Description: "Extra 1",
 					},
 					{
 						Base:        model.Base{ID: "extra-2"},
-						Code:        "extra2",
+						Code:        101,
 						URL:         "https://example.com/2",
 						UserID:      fixture.FixtureUserOneID,
 						Description: "Extra 2",

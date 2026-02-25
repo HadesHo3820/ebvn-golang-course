@@ -7,7 +7,6 @@ import (
 
 	repoMocks "github.com/HadesHo3820/ebvn-golang-course/internal/repository/bookmark/mocks"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
-	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,11 +67,10 @@ func TestBookmarkSvc_UpdateBookmark(t *testing.T) {
 
 			// Setup mocks
 			mockRepo := repoMocks.NewRepository(t)
-			mockCodeGen := mocks.NewKeyGenerator(t)
 			tc.setupMock(mockRepo, ctx)
 
 			// Create service
-			svc := NewBookmarkSvc(mockRepo, mockCodeGen)
+			svc := NewBookmarkSvc(mockRepo)
 
 			// Execute
 			err := svc.UpdateBookmark(ctx, tc.inputBookmarkID, tc.inputUserID, tc.inputDescription, tc.inputURL)

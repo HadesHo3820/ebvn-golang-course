@@ -21,11 +21,11 @@ const (
 	testUserID       = "test-user-id"
 	testBookmarkDesc = "My Bookmark"
 	testBookmarkURL  = "https://example.com"
-	testBookmarkCode = "abc123456"
 )
 
 var (
-	testBookmarkLongURL = "https://example.com/" + strings.Repeat("a", 2050)
+	testBookmarkCode    int64  = 42 // base62.Encode(42) = "G"
+	testBookmarkLongURL string = "https://example.com/" + strings.Repeat("a", 2050)
 )
 
 func TestBookmarkHandler_CreateBookmark(t *testing.T) {
@@ -77,7 +77,7 @@ func TestBookmarkHandler_CreateBookmark(t *testing.T) {
 					"id":          "bm-1",
 					"description": testBookmarkDesc,
 					"url":         testBookmarkURL,
-					"code":        testBookmarkCode,
+					"code":        "G", // base62.Encode(42)
 					"user_id":     testUserID,
 					"created_at":  fixedTime.Format(time.RFC3339Nano),
 					"updated_at":  fixedTime.Format(time.RFC3339Nano),

@@ -11,9 +11,9 @@ const (
 	// FixtureBookmarkTwoID is the ID for the second bookmark fixture.
 	FixtureBookmarkTwoID = "322ac10b-58cc-4372-a567-0e02b2c3d479"
 	// FixtureBookmarkOneCode is the unique code for the first bookmark fixture.
-	FixtureBookmarkOneCode = "abc12345"
+	FixtureBookmarkOneCode int64 = 1
 	// FixtureBookmarkTwoCode is the unique code for the second bookmark fixture.
-	FixtureBookmarkTwoCode = "def12345"
+	FixtureBookmarkTwoCode int64 = 2
 	// FixtureBookmarkURL is the URL used for bookmark fixtures.
 	FixtureBookmarkURL = "https://example.com/long-url"
 	// FixtureBookmarkDescription is the description used for bookmark fixtures.

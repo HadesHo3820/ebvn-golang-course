@@ -20,8 +20,9 @@ import (
 const (
 	testQueryBookmarkDesc = "Bookmark 1"
 	testQueryBookmarkURL  = "https://example.com/1"
-	testQueryBookmarkCode = "test-code"
 )
+
+var testQueryBookmarkCode int64 = 99 // base62.Encode(99) = "1B"
 
 func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 	t.Parallel()
@@ -83,7 +84,7 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 						"id":          "bm-1",
 						"description": testQueryBookmarkDesc,
 						"url":         testQueryBookmarkURL,
-						"code":        testQueryBookmarkCode,
+						"code":        "1B", // base62.Encode(99)
 						"user_id":     testUserID,
 						"created_at":  fixedTime.Format(time.RFC3339Nano),
 						"updated_at":  fixedTime.Format(time.RFC3339Nano),
