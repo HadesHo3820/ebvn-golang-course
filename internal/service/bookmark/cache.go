@@ -157,6 +157,13 @@ func (s *bookmarkServiceWithCache) UpdateBookmark(ctx context.Context, bookmarkI
 	return nil
 }
 
+// GetUrlByCode delegates to the underlying service without caching.
+// Redirect lookups are simple key-based operations that don't benefit
+// from the cache-aside pattern used for paginated bookmark lists.
+func (s *bookmarkServiceWithCache) GetUrlByCode(ctx context.Context, code int64) (string, error) {
+	return s.s.GetUrlByCode(ctx, code)
+}
+
 // DeleteBookmark removes a bookmark and invalidates the user's cache.
 // Strategy: Write-Invalidate
 // 1. Delete from DB (Source of Truth)
