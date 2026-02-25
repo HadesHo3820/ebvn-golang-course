@@ -299,6 +299,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/links/redirect/{code}": {
+            "get": {
+                "description": "Retrieve the original URL for a short code and redirect the client",
+                "tags": [
+                    "URL"
+                ],
+                "summary": "Redirect to original URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "abc1234",
+                        "description": "Short code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Redirects to the original URL"
+                    },
+                    "400": {
+                        "description": "Bad Request - wrong format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/links/shorten": {
             "post": {
                 "description": "Generate a short code for the provided URL",
@@ -334,45 +373,6 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_HadesHo3820_ebvn-golang-course_pkg_response.Message"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/links/{code}": {
-            "get": {
-                "description": "Retrieve the original URL for a short code and redirect the client",
-                "tags": [
-                    "URL"
-                ],
-                "summary": "Redirect to original URL",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "example": "abc1234",
-                        "description": "Short code",
-                        "name": "code",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "302": {
-                        "description": "Redirects to the original URL"
-                    },
-                    "400": {
-                        "description": "Bad Request - wrong format",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
                         }
                     },
                     "500": {
@@ -703,9 +703,6 @@ const docTemplate = `{
         "github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark": {
             "type": "object",
             "properties": {
-                "code": {
-                    "type": "string"
-                },
                 "created_at": {
                     "type": "string"
                 },

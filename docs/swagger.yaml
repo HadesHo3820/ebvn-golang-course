@@ -84,8 +84,6 @@ definitions:
     type: object
   github_com_HadesHo3820_ebvn-golang-course_internal_model.Bookmark:
     properties:
-      code:
-        type: string
       created_at:
         type: string
       description:
@@ -457,7 +455,7 @@ paths:
       summary: Generate a random password
       tags:
       - password
-  /v1/links/{code}:
+  /v1/links/redirect/{code}:
     get:
       description: Retrieve the original URL for a short code and redirect the client
       parameters:
