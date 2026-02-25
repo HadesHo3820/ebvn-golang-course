@@ -17,6 +17,9 @@ type Repository interface {
 	UpdateBookmark(ctx context.Context, bookmarkID, userID, description, url string) error
 	DeleteBookmark(ctx context.Context, bookmarkID, userID string) error
 	GetBookmarksCount(ctx context.Context, userID string) (int64, error)
+	// GetBookmarkByCode retrieves a bookmark by its unique auto-incremented code.
+	// Returns the bookmark if found, or gorm.ErrRecordNotFound if no bookmark exists with the given code.
+	GetBookmarkByCode(ctx context.Context, code int64) (*model.Bookmark, error)
 }
 
 // bookmarkRepo is the concrete implementation of the Repository interface using GORM.
