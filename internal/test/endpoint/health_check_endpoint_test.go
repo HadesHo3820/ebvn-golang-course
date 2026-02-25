@@ -11,8 +11,6 @@ import (
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
-	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,25 +34,13 @@ import (
 func TestHealthCheckEndpoint(t *testing.T) {
 	t.Parallel()
 
-	cfg := &api.Config{
-		ServiceName: "test-service",
-		InstanceID:  "1234",
-	}
-
 	testCases := []struct {
 		name           string
-		setupTestHTTP  func(api api.Engine) *httptest.ResponseRecorder
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
-			name: "healthy - Redis available",
-			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, "/health-check", nil)
-				rec := httptest.NewRecorder()
-				api.ServeHTTP(rec, req)
-				return rec
-			},
+			name:           "healthy - Redis available",
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"message":"OK","data":{"service_name":"test-service","instance_id":"1234"}}`,
 		},
@@ -64,11 +50,17 @@ func TestHealthCheckEndpoint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			rec := tc.setupTestHTTP(api.New(&api.EngineOpts{
-				Engine:      gin.New(),
-				Cfg:         cfg,
-				RedisClient: redisPkg.InitMockRedis(t),
-			}))
+			testEngine := NewTestEngine(&TestEngineOpts{
+				T: t,
+				Cfg: &api.Config{
+					ServiceName: "test-service",
+					InstanceID:  "1234",
+				},
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/health-check", nil)
+			rec := httptest.NewRecorder()
+			testEngine.Engine.ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
 			assert.JSONEq(t, tc.expectedBody, rec.Body.String())

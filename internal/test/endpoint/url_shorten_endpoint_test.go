@@ -12,12 +12,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/HadesHo3820/ebvn-golang-course/internal/api"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/test/fixture"
-	redisPkg "github.com/HadesHo3820/ebvn-golang-course/pkg/redis"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
-	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
-	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,20 +38,13 @@ func TestUrlShortenEndpoint(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		setupTestHTTP  func(api api.Engine) *httptest.ResponseRecorder
+		requestBody    map[string]any
 		expectedStatus int
 		validateBody   func(t *testing.T, body map[string]interface{})
 	}{
 		{
-			name: "success - shorten valid URL",
-			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				jsonBody, _ := json.Marshal(fixture.DefaultShortenURLBody())
-				req := httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
-				req.Header.Set("Content-Type", "application/json")
-				rec := httptest.NewRecorder()
-				api.ServeHTTP(rec, req)
-				return rec
-			},
+			name:           "success - shorten valid URL",
+			requestBody:    fixture.DefaultShortenURLBody(),
 			expectedStatus: http.StatusOK,
 			validateBody: func(t *testing.T, body map[string]interface{}) {
 				assert.Equal(t, "Shorten URL generated successfully!", body["message"])
@@ -67,30 +56,16 @@ func TestUrlShortenEndpoint(t *testing.T) {
 			},
 		},
 		{
-			name: "bad request - invalid URL format",
-			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				jsonBody, _ := json.Marshal(fixture.DefaultShortenURLBody(fixture.WithFieldAny("url", "not-a-valid-url")))
-				req := httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
-				req.Header.Set("Content-Type", "application/json")
-				rec := httptest.NewRecorder()
-				api.ServeHTTP(rec, req)
-				return rec
-			},
+			name:           "bad request - invalid URL format",
+			requestBody:    fixture.DefaultShortenURLBody(fixture.WithFieldAny("url", "not-a-valid-url")),
 			expectedStatus: http.StatusBadRequest,
 			validateBody: func(t *testing.T, body map[string]interface{}) {
 				assert.Equal(t, response.InputErrMessage, body["message"])
 			},
 		},
 		{
-			name: "bad request - missing URL",
-			setupTestHTTP: func(api api.Engine) *httptest.ResponseRecorder {
-				jsonBody, _ := json.Marshal(fixture.DefaultShortenURLBody(fixture.WithFieldAny("url", nil)))
-				req := httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
-				req.Header.Set("Content-Type", "application/json")
-				rec := httptest.NewRecorder()
-				api.ServeHTTP(rec, req)
-				return rec
-			},
+			name:           "bad request - missing URL",
+			requestBody:    fixture.DefaultShortenURLBody(fixture.WithFieldAny("url", nil)),
 			expectedStatus: http.StatusBadRequest,
 			validateBody: func(t *testing.T, body map[string]interface{}) {
 				assert.Equal(t, response.InputErrMessage, body["message"])
@@ -102,14 +77,16 @@ func TestUrlShortenEndpoint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Since the URL shortening feature doesn't require configuration,
-			// we can pass nil to the api.New function.
-			rec := tc.setupTestHTTP(api.New(&api.EngineOpts{
-				Engine:      gin.New(),
-				Cfg:         &api.Config{},
-				RedisClient: redisPkg.InitMockRedis(t),
-				KeyGen:      stringutils.NewKeyGenerator(),
-			}))
+			testEngine := NewTestEngine(&TestEngineOpts{
+				T:       t,
+				Fixture: &fixture.BookmarkCommonTestDB{},
+			})
+
+			jsonBody, _ := json.Marshal(tc.requestBody)
+			req := httptest.NewRequest(http.MethodPost, "/v1/links/shorten", bytes.NewReader(jsonBody))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			testEngine.Engine.ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expectedStatus, rec.Code)
 
@@ -142,9 +119,8 @@ func TestGetUrlEndpoint(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		code           string                                                             // Code to request
-		setupRedis     func(redis *redis.Client)                                          // Optional: pre-populate Redis
-		setupTestHTTP  func(apiEngine api.Engine, code string) *httptest.ResponseRecorder // Setup and execute request
+		code           string                    // Code to request
+		setupRedis     func(redis *redis.Client) // Optional: pre-populate Redis
 		expectedStatus int
 		validateBody   func(t *testing.T, rec *httptest.ResponseRecorder)
 	}{
@@ -155,27 +131,25 @@ func TestGetUrlEndpoint(t *testing.T) {
 				// Pre-populate Redis with a code-URL mapping
 				r.Set(context.Background(), "preload1", "https://preloaded-url.com", 0)
 			},
-			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, redirectURI+code, nil)
-				rec := httptest.NewRecorder()
-				apiEngine.ServeHTTP(rec, req)
-				return rec
-			},
 			expectedStatus: http.StatusFound,
 			validateBody: func(t *testing.T, rec *httptest.ResponseRecorder) {
 				assert.Equal(t, "https://preloaded-url.com", rec.Header().Get("Location"))
 			},
 		},
 		{
-			name:       "bad request - code not found",
-			code:       "notexist",
-			setupRedis: nil, // No pre-population needed
-			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, redirectURI+code, nil)
-				rec := httptest.NewRecorder()
-				apiEngine.ServeHTTP(rec, req)
-				return rec
+			name:           "success - Redis miss, DB fallback hit",
+			code:           "1", // base62.Encode(FixtureBookmarkOneCode=1) = "1"
+			setupRedis:     nil, // Redis empty — forces DB fallback
+			expectedStatus: http.StatusFound,
+			validateBody: func(t *testing.T, rec *httptest.ResponseRecorder) {
+				// Should redirect to the bookmark URL seeded by BookmarkCommonTestDB fixture
+				assert.Equal(t, fixture.FixtureBookmarkURL, rec.Header().Get("Location"))
 			},
+		},
+		{
+			name:           "bad request - code not found in Redis or DB",
+			code:           "notexist",
+			setupRedis:     nil, // No pre-population needed
 			expectedStatus: http.StatusBadRequest,
 			validateBody: func(t *testing.T, rec *httptest.ResponseRecorder) {
 				var resp map[string]any
@@ -191,12 +165,6 @@ func TestGetUrlEndpoint(t *testing.T) {
 				// Close the Redis connection to simulate a connection failure
 				r.Close()
 			},
-			setupTestHTTP: func(apiEngine api.Engine, code string) *httptest.ResponseRecorder {
-				req := httptest.NewRequest(http.MethodGet, redirectURI+code, nil)
-				rec := httptest.NewRecorder()
-				apiEngine.ServeHTTP(rec, req)
-				return rec
-			},
 			expectedStatus: http.StatusInternalServerError,
 			validateBody: func(t *testing.T, rec *httptest.ResponseRecorder) {
 				var resp map[string]any
@@ -211,23 +179,20 @@ func TestGetUrlEndpoint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Setup mock Redis
-			mockRedis := redisPkg.InitMockRedis(t)
+			testEngine := NewTestEngine(&TestEngineOpts{
+				T:       t,
+				Fixture: &fixture.BookmarkCommonTestDB{},
+			})
 
 			// Pre-populate Redis if needed
 			if tc.setupRedis != nil {
-				tc.setupRedis(mockRedis)
+				tc.setupRedis(testEngine.RedisClient)
 			}
 
-			// Create API engine
-			apiEngine := api.New(&api.EngineOpts{
-				Engine:      gin.New(),
-				Cfg:         &api.Config{},
-				RedisClient: mockRedis,
-			})
-
 			// Execute request
-			rec := tc.setupTestHTTP(apiEngine, tc.code)
+			req := httptest.NewRequest(http.MethodGet, redirectURI+tc.code, nil)
+			rec := httptest.NewRecorder()
+			testEngine.Engine.ServeHTTP(rec, req)
 
 			// Assert status
 			assert.Equal(t, tc.expectedStatus, rec.Code)

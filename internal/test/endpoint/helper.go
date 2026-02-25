@@ -11,6 +11,7 @@ import (
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/stringutils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -44,6 +45,7 @@ type TestEngineOpts struct {
 type TestEngine struct {
 	Engine       api.Engine
 	DB           *gorm.DB
+	RedisClient  *redis.Client
 	JwtGen       *jwtMocks.JWTGenerator
 	JwtValidator *jwtMocks.JWTValidator
 }
@@ -98,11 +100,14 @@ func NewTestEngine(opts *TestEngineOpts) *TestEngine {
 		jwtValidator = jwtMocks.NewJWTValidator(opts.T)
 	}
 
+	// Setup mock Redis
+	mockRedis := redisPkg.InitMockRedis(opts.T)
+
 	// Create API engine with dependencies
 	engine := api.New(&api.EngineOpts{
 		Engine:           gin.New(),
 		Cfg:              cfg,
-		RedisClient:      redisPkg.InitMockRedis(opts.T),
+		RedisClient:      mockRedis,
 		CacheRedisClient: redisPkg.InitMockRedis(opts.T),
 		SqlDB:            db,
 		KeyGen:           stringutils.NewKeyGenerator(),
@@ -114,6 +119,7 @@ func NewTestEngine(opts *TestEngineOpts) *TestEngine {
 	return &TestEngine{
 		Engine:       engine,
 		DB:           db,
+		RedisClient:  mockRedis,
 		JwtGen:       jwtGen,
 		JwtValidator: jwtValidator,
 	}
