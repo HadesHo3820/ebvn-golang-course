@@ -128,8 +128,19 @@ func (a *api) initHandlers() *handlers {
 	healthSvc := service.NewHealthCheck(a.cfg.ServiceName, a.cfg.InstanceID, healthCheckRepo)
 
 	// Create URL shortening service with Redis storage
+	// The bookmark service is passed as a fallback for redirect lookups:
+	// if a code is not found in Redis, the service will try to base62-decode
+	// the code and look it up in the bookmark database.
 	urlRepo := repository.NewUrlStorage(a.redisClient)
-	urlSvc := service.NewShortenUrl(urlRepo, a.keyGen)
+
+	// Init bookmark handler
+	bookmarkRepo := bookmarkRepo.NewRepository(a.db)
+	bookmarkSvc := bookmarkService.NewBookmarkSvc(bookmarkRepo)
+	bookmarkSvcWithCache := bookmarkService.NewServiceWithCache(bookmarkSvc, cacheDB)
+	bookmarkHandler := bookmark.NewHandler(bookmarkSvcWithCache)
+
+	// Create URL shortening service with bookmark fallback
+	urlSvc := service.NewShortenUrl(urlRepo, a.keyGen, bookmarkSvcWithCache)
 
 	// Create password service (stateless, no repository needed)
 	passSvc := service.NewPassword()
@@ -137,12 +148,6 @@ func (a *api) initHandlers() *handlers {
 	// Create user service with PostgreSQL repository
 	userRepo := repository.NewUser(a.db)
 	userSvc := service.NewUser(userRepo, a.jwtGen, a.passwordHashing)
-
-	// Init bookmark handler
-	bookmarkRepo := bookmarkRepo.NewRepository(a.db)
-	bookmarkSvc := bookmarkService.NewBookmarkSvc(bookmarkRepo, a.keyGen)
-	bookmarkSvcWithCache := bookmarkService.NewServiceWithCache(bookmarkSvc, cacheDB)
-	bookmarkHandler := bookmark.NewHandler(bookmarkSvcWithCache)
 
 	return &handlers{
 		healthCheckHandler: healthcheck.NewHealthCheckHandler(healthSvc),
