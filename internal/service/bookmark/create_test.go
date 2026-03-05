@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	testBookmarkDesc       = "Test Bookmark"
-	testBookmarkURL        = "https://example.com"
-	testUserID             = "user-123"
-	testBookmarkCode int64 = 42
-	testBookmarkID         = "bookmark-1"
+	testBookmarkDesc                 = "Test Bookmark"
+	testBookmarkURL                  = "https://example.com"
+	testUserID                       = "user-123"
+	testBookmarkSequenceCodeID int64 = 42
+	testBookmarkID                   = "bookmark-1"
 )
 
 func TestBookmarkSvc_CreateBookmark(t *testing.T) {
@@ -38,21 +38,29 @@ func TestBookmarkSvc_CreateBookmark(t *testing.T) {
 			inputUserID:      testUserID,
 			setupMock: func(mockRepo *repoMocks.Repository, ctx context.Context) {
 				mockRepo.On("CreateBookmark", ctx, mock.Anything).
-					Return(&model.Bookmark{
-						Base:        model.Base{ID: testBookmarkID},
-						Description: testBookmarkDesc,
-						URL:         testBookmarkURL,
-						Code:        testBookmarkCode,
-						UserID:      testUserID,
-					}, nil)
+					Return(func() *model.Bookmark {
+						encoded := "G" // base62.Encode(42)
+						return &model.Bookmark{
+							Base:                model.Base{ID: testBookmarkID},
+							Description:         testBookmarkDesc,
+							URL:                 testBookmarkURL,
+							SequenceCodeID:      testBookmarkSequenceCodeID,
+							EncodedBookmarkCode: &encoded,
+							UserID:              testUserID,
+						}
+					}(), nil)
 			},
-			expectedOutput: &model.Bookmark{
-				Base:        model.Base{ID: testBookmarkID},
-				Description: testBookmarkDesc,
-				URL:         testBookmarkURL,
-				Code:        testBookmarkCode,
-				UserID:      testUserID,
-			},
+			expectedOutput: func() *model.Bookmark {
+				encoded := "G" // base62.Encode(42)
+				return &model.Bookmark{
+					Base:                model.Base{ID: testBookmarkID},
+					Description:         testBookmarkDesc,
+					URL:                 testBookmarkURL,
+					SequenceCodeID:      testBookmarkSequenceCodeID,
+					EncodedBookmarkCode: &encoded,
+					UserID:              testUserID,
+				}
+			}(),
 		},
 		{
 			name:             "Error - Repository Creation Failed",

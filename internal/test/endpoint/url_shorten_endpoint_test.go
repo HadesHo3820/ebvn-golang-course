@@ -138,7 +138,7 @@ func TestGetUrlEndpoint(t *testing.T) {
 		},
 		{
 			name:           "success - Redis miss, DB fallback hit",
-			code:           "1", // base62.Encode(FixtureBookmarkOneCode=1) = "1"
+			code:           "1", // base62.Encode(FixtureBookmarkOneSequenceCodeID=1) = "1"
 			setupRedis:     nil, // Redis empty — forces DB fallback
 			expectedStatus: http.StatusFound,
 			validateBody: func(t *testing.T, rec *httptest.ResponseRecorder) {

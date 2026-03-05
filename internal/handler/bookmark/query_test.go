@@ -22,7 +22,7 @@ const (
 	testQueryBookmarkURL  = "https://example.com/1"
 )
 
-var testQueryBookmarkCode int64 = 99 // base62.Encode(99) = "1B"
+var testQueryBookmarkSequenceCodeID int64 = 99 // base62.Encode(99) = "1B"
 
 func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 	t.Parallel()
@@ -61,10 +61,11 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 								CreatedAt: fixedTime,
 								UpdatedAt: fixedTime,
 							},
-							Description: testQueryBookmarkDesc,
-							URL:         testQueryBookmarkURL,
-							Code:        testQueryBookmarkCode,
-							UserID:      testUserID,
+							Description:         testQueryBookmarkDesc,
+							URL:                 testQueryBookmarkURL,
+							SequenceCodeID:      testQueryBookmarkSequenceCodeID,
+							EncodedBookmarkCode: func() *string { s := "1B"; return &s }(),
+							UserID:              testUserID,
 						},
 					},
 					Metadata: dto.Metadata{

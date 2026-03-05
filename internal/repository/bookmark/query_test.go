@@ -49,18 +49,18 @@ func TestBookmarkRepo_GetBookmarks(t *testing.T) {
 				// Add 2 more bookmarks for User 1 to have total 3
 				extraBookmarks := []*model.Bookmark{
 					{
-						Base:        model.Base{ID: "extra-1"},
-						Code:        100,
-						URL:         "https://example.com/1",
-						UserID:      fixture.FixtureUserOneID,
-						Description: "Extra 1",
+						Base:           model.Base{ID: "extra-1"},
+						SequenceCodeID: 100,
+						URL:            "https://example.com/1",
+						UserID:         fixture.FixtureUserOneID,
+						Description:    "Extra 1",
 					},
 					{
-						Base:        model.Base{ID: "extra-2"},
-						Code:        101,
-						URL:         "https://example.com/2",
-						UserID:      fixture.FixtureUserOneID,
-						Description: "Extra 2",
+						Base:           model.Base{ID: "extra-2"},
+						SequenceCodeID: 101,
+						URL:            "https://example.com/2",
+						UserID:         fixture.FixtureUserOneID,
+						Description:    "Extra 2",
 					},
 				}
 				err := db.Create(&extraBookmarks).Error
@@ -147,18 +147,18 @@ func TestBookmarkRepo_GetBookmarksCount(t *testing.T) {
 				// Add 2 more bookmarks for User 1 to have total 3
 				extraBookmarks := []*model.Bookmark{
 					{
-						Base:        model.Base{ID: "extra-1"},
-						Code:        100,
-						URL:         "https://example.com/1",
-						UserID:      fixture.FixtureUserOneID,
-						Description: "Extra 1",
+						Base:           model.Base{ID: "extra-1"},
+						SequenceCodeID: 100,
+						URL:            "https://example.com/1",
+						UserID:         fixture.FixtureUserOneID,
+						Description:    "Extra 1",
 					},
 					{
-						Base:        model.Base{ID: "extra-2"},
-						Code:        101,
-						URL:         "https://example.com/2",
-						UserID:      fixture.FixtureUserOneID,
-						Description: "Extra 2",
+						Base:           model.Base{ID: "extra-2"},
+						SequenceCodeID: 101,
+						URL:            "https://example.com/2",
+						UserID:         fixture.FixtureUserOneID,
+						Description:    "Extra 2",
 					},
 				}
 				err := db.Create(&extraBookmarks).Error

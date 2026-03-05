@@ -25,7 +25,7 @@ func TestBookmarkRepo_GetBookmarkByCode(t *testing.T) {
 			setupDB: func(t *testing.T) *gorm.DB {
 				return fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
 			},
-			inputCode: fixture.FixtureBookmarkOneCode,
+			inputCode: fixture.FixtureBookmarkOneSequenceCodeID,
 			expectedBookmark: &model.Bookmark{
 				URL:    fixture.FixtureBookmarkURL,
 				UserID: fixture.FixtureUserOneID,
@@ -47,7 +47,7 @@ func TestBookmarkRepo_GetBookmarkByCode(t *testing.T) {
 				sqlDB.Close()
 				return db
 			},
-			inputCode:    fixture.FixtureBookmarkOneCode,
+			inputCode:    fixture.FixtureBookmarkOneSequenceCodeID,
 			expectAnyErr: true,
 		},
 	}
@@ -77,7 +77,7 @@ func TestBookmarkRepo_GetBookmarkByCode(t *testing.T) {
 			assert.NotNil(t, bookmark)
 			assert.Equal(t, tc.expectedBookmark.URL, bookmark.URL)
 			assert.Equal(t, tc.expectedBookmark.UserID, bookmark.UserID)
-			assert.Equal(t, tc.inputCode, bookmark.Code)
+			assert.Equal(t, tc.inputCode, bookmark.SequenceCodeID)
 		})
 	}
 }

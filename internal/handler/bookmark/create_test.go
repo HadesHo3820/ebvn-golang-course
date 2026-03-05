@@ -24,8 +24,8 @@ const (
 )
 
 var (
-	testBookmarkCode    int64  = 42 // base62.Encode(42) = "G"
-	testBookmarkLongURL string = "https://example.com/" + strings.Repeat("a", 2050)
+	testBookmarkSequenceCodeID int64  = 42 // base62.Encode(42) = "G"
+	testBookmarkLongURL        string = "https://example.com/" + strings.Repeat("a", 2050)
 )
 
 func TestBookmarkHandler_CreateBookmark(t *testing.T) {
@@ -57,17 +57,21 @@ func TestBookmarkHandler_CreateBookmark(t *testing.T) {
 					mock.Anything,
 					mock.Anything,
 					mock.Anything,
-				).Return(&model.Bookmark{
-					Base: model.Base{
-						ID:        "bm-1",
-						CreatedAt: fixedTime,
-						UpdatedAt: fixedTime,
-					},
-					Description: testBookmarkDesc,
-					URL:         testBookmarkURL,
-					Code:        testBookmarkCode,
-					UserID:      testUserID,
-				}, nil)
+				).Return(func() *model.Bookmark {
+					encoded := "G" // base62.Encode(42)
+					return &model.Bookmark{
+						Base: model.Base{
+							ID:        "bm-1",
+							CreatedAt: fixedTime,
+							UpdatedAt: fixedTime,
+						},
+						Description:         testBookmarkDesc,
+						URL:                 testBookmarkURL,
+						SequenceCodeID:      testBookmarkSequenceCodeID,
+						EncodedBookmarkCode: &encoded,
+						UserID:              testUserID,
+					}
+				}(), nil)
 				return svcMock
 			},
 			expectedStatus: http.StatusOK,
