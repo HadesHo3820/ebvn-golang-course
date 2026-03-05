@@ -1,11 +1,5 @@
 package model
 
-import (
-	"encoding/json"
-
-	"github.com/HadesHo3820/ebvn-golang-course/pkg/base62"
-)
-
 // Bookmark represents a shortened URL bookmark in the system.
 // This struct maps to the "bookmarks" table in the database and stores
 // URL shortening information with ownership tracking and soft delete support.
@@ -17,38 +11,24 @@ import (
 //   - Base: Embedded struct providing ID, CreatedAt, UpdatedAt, and DeletedAt
 //   - Description: Optional user-provided description or title for the bookmark
 //   - URL: The original long URL that the short code redirects to
-//   - Code: Auto-incrementing integer used as the unique identifier for redirection.
-//     Stored as int64 in the database, but serialized as a base62-encoded string
-//     in JSON responses for shorter, URL-safe representation.
+//
+//   - SequenceCodeID: Auto-incrementing integer used as the unique identifier for redirection.
+//     Stored as int64 in the database. Hidden from JSON responses.
+//
+//   - EncodedBookmarkCode: The Base62-encoded string representation of SequenceCodeID.
+//     Populated during bookmark creation within a transaction. Serialized as "code" in JSON.
+//     EncodedBookmarkCode is a pointer (*string) because the database column is nullable (DEFAULT NULL).
+//
 //   - UserID: Foreign key referencing the user who created this bookmark
 //   - User: The associated User object (excluded from JSON, loaded via GORM association)
 type Bookmark struct {
 	Base
-	Description string `json:"description"`
-	URL         string `json:"url"`
-	Code        int64  `json:"-" gorm:"autoIncrement;unique"`
-	UserID      string `json:"user_id"`
-	User        *User  `gorm:"references:ID" json:"-"`
-}
-
-// MarshalJSON customizes the JSON serialization of Bookmark.
-// It encodes the integer Code field as a base62 string for the client,
-// producing shorter, URL-safe codes (e.g., 1000 → "g8").
-func (b Bookmark) MarshalJSON() ([]byte, error) {
-	type Alias Bookmark
-
-	encodedCode, err := base62.Encode(b.Code)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(&struct {
-		Alias
-		Code string `json:"code"`
-	}{
-		Alias: Alias(b),
-		Code:  encodedCode,
-	})
+	Description    string `json:"description"`
+	URL            string `json:"url"`
+	SequenceCodeID int64  `json:"-" gorm:"column:sequence_code_id;autoIncrement;unique"`
+	EncodedBookmarkCode *string `json:"code" gorm:"column:encoded_bookmark_code"`
+	UserID              string  `json:"user_id"`
+	User                *User   `gorm:"references:ID" json:"-"`
 }
 
 // User represents the "Belongs To" relationship with the User model.
