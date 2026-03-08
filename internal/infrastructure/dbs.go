@@ -54,3 +54,12 @@ func CreateSQLDBWithMigration() *gorm.DB {
 func MigrateDB(sqlDB *gorm.DB) error {
 	return sqldb.MigrateSQLDB(sqlDB, "file://./migrations", "up", 0)
 }
+
+// CreateSQLDB creates a new SQL database connection without running migrations.
+// This is useful for scripts or one-off tasks (like backfilling data) where
+// migrations should not be automatically triggered.
+func CreateSQLDB() *gorm.DB {
+	db, err := sqldb.NewClient("")
+	common.HandleError(err)
+	return db
+}

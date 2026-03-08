@@ -7,9 +7,11 @@
 # STAGES OVERVIEW:
 # ┌─────────────────────────────────────────────────────────────────────────────┐
 # │  base       → Common foundation with Go, dependencies, and source code     │
-# │     ├── build      → Compiles the production binary                        │
-# │     └── test-exec  → Runs tests and generates coverage reports             │
-# │            └── test → Minimal image containing only coverage artifacts     │
+# │     ├── build            → Compiles the production API binary              │
+# │     ├── build_migration  → Compiles the migration script binary            │
+# │     │     └── migration  → Minimal image for running DB migrations         │
+# │     └── test-exec        → Runs tests and generates coverage reports       │
+# │            └── test      → Minimal image containing only coverage artifacts│
 # │  final      → Production runtime image (~20MB)                             │
 # └─────────────────────────────────────────────────────────────────────────────┘
 #
@@ -118,6 +120,79 @@ FROM base AS build
 # Input: cmd/api/main.go (application entry point)
 # Output: bookmark_service (compiled binary, ~10-20MB smaller than default)
 RUN GOOS=linux go build -tags musl -ldflags "-w -s" -o bookmark_service cmd/api/main.go
+
+# =============================================================================
+# STAGE: BUILD_MIGRATION
+# =============================================================================
+# Purpose: Compile the migration script into a standalone binary.
+#
+# Inherits: FROM base (includes source code and downloaded dependencies)
+# Produces: /opt/app/migrate_script (compiled binary)
+#
+# This stage compiles cmd/script/main.go, which contains the migration
+# logic (e.g., backfilling data, running schema changes programmatically).
+# It is separate from the main 'build' stage because it produces a
+# different binary for a different purpose (one-off migration vs long-running API).
+# =============================================================================
+FROM base AS build_migration
+
+# Compile the migration script with the same flags as the main build.
+# The output binary is written to /opt/app/migrate_script because
+# the WORKDIR inherited from the 'base' stage is /opt/app.
+#
+# Input:  cmd/script/main.go (migration entry point)
+# Output: /opt/app/migrate_script (compiled binary)
+RUN GOOS=linux go build -tags musl -ldflags="-w -s" \
+    -o migrate_script cmd/script/main.go
+
+# =============================================================================
+# STAGE: MIGRATION
+# =============================================================================
+# Purpose: Create a minimal, standalone image for running database migrations.
+#
+# Base image: alpine:3.23 (minimal Linux, ~5MB)
+#
+# This container is designed to be run as a one-off job (e.g., docker run,
+# Kubernetes Job) to apply database migrations before or independently of
+# the main API service.
+#
+# DEPENDENCY CHAIN (auto-built by Docker when targeting this stage):
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │  base             → Downloads Go dependencies & copies source code      │
+# │    └── build_migration → Compiles cmd/script/main.go into binary       │
+# │          └── migration → Copies binary + SQL files into Alpine image   │
+# └──────────────────────────────────────────────────────────────────────────┘
+# Stages NOT built: build, test-exec, test, final (not in dependency chain)
+#
+# Build & run:
+#   docker build --target migration -t bookmark_migration:latest .
+#   docker run --rm bookmark_migration:latest
+# =============================================================================
+FROM alpine:3.23 AS migration
+
+# Create a non-root user for security consistency with the 'final' stage.
+RUN addgroup -S appgroup \
+    && adduser -S appuser -G appgroup
+
+USER appuser
+
+WORKDIR /app
+
+# Copy the compiled migration binary from the build_migration stage.
+# Source path: /opt/app/migrate_script
+#   - /opt/app/ = WORKDIR set in the 'base' stage (line 47)
+#   - migrate_script = output name from 'go build -o migrate_script' above
+COPY --from=build_migration /opt/app/migrate_script /app/migrate_script
+
+# Copy the SQL migration files from the build_migration stage.
+# Source path: /opt/app/migrations
+#   - This directory exists because the 'base' stage ran 'COPY . .' (line 95),
+#     which copied the local ./migrations/ folder into /opt/app/migrations/
+#   - Contains .up.sql and .down.sql files used by golang-migrate
+COPY --from=build_migration /opt/app/migrations /app/migrations
+
+# Run the migration script when the container starts.
+CMD ["/app/migrate_script"]
 
 # =============================================================================
 # STAGE: TEST-EXEC

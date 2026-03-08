@@ -58,6 +58,11 @@ endif
 # Override: If we're on an exact Git tag, use that tag for the image
 # Git tags take precedence over branch-based tagging
 # This enables versioned releases (e.g., v1.0.0)
+# ifneq stands for "if not equal".
+# It checks if the variable $(GIT_TAG) is not empty.
+# Earlier in the file (line 47), GIT_TAG is populated by running git describe --tags --exact-match.
+# If you are on a commit that has a Git tag (e.g., v1.0.0), GIT_TAG will equal v1.0.0.
+# If you are on a normal commit without a tag, GIT_TAG is empty.
 ifneq ($(GIT_TAG),)
 	IMG_TAG := $(GIT_TAG)
 endif
@@ -228,6 +233,19 @@ COVERAGE_FOLDER=./coverage
 # Usage with custom exclusions:
 #   make docker-test COVERAGE_EXCLUDE="mocks|generated"
 # -----------------------------------------------------------------------------
+# Uses Docker BuildKit (buildx) to run tests inside a container and extract coverage files.
+#
+# Flags breakdown:
+#   --build-arg COVERAGE_EXCLUDE="..." → Passes file exclusion patterns into the Dockerfile
+#       (e.g., mocks|main.go|docs.go|test) to filter them from coverage calculations
+#   --target test → Builds ONLY up to the 'test' stage (a scratch image containing
+#       just coverage.out and coverage.html — no Go compiler, no source code)
+#   -t bookmark_service:dev → Tags the resulting image (required by buildx)
+#   --output ${COVERAGE_FOLDER} → Extracts files from the scratch image directly to the
+#       local filesystem (./coverage/), instead of keeping them as a Docker image.
+#       This is what makes buildx special — it can output build results as local files.
+#   . → Build context = current directory (uses ./Dockerfile)
+# -----------------------------------------------------------------------------
 docker-test:
 	mkdir -p ${COVERAGE_FOLDER}
 	docker buildx build --build-arg COVERAGE_EXCLUDE="${COVERAGE_EXCLUDE}" --target test -t bookmark_service:dev --output ${COVERAGE_FOLDER} .
@@ -240,7 +258,7 @@ docker-test:
 	fi
 
 # -----------------------------------------------------------------------------
-# docker-build: Build production Docker image
+# docker-build: Build production Docker images
 # -----------------------------------------------------------------------------
 # Builds the production-ready Docker image with automatic tagging.
 #
@@ -252,9 +270,21 @@ docker-test:
 # Usage: make docker-build
 # Usage with custom tag:
 #   make docker-build IMG_TAG=custom-tag
+
+# `docker build --target migration -t $(IMG_NAME)_migration:$(IMG_TAG) .`
+# Build a separate, lightweight image for database migrations.
+# --target migration: Builds ONLY the 'migration' stage from the Dockerfile,
+#   skipping the 'final' stage (API server). This produces a minimal Alpine image
+#   containing just the migration binary and SQL files.
+# This image is intended to be run as a one-off job (e.g., docker run, K8s Job)
+# to apply database schema changes independently of the API service.
 # -----------------------------------------------------------------------------
 docker-build:
+	@echo "Building Docker image: $(IMG_NAME):$(IMG_TAG)"
 	docker build -t $(IMG_NAME):$(IMG_TAG) .
+
+	@echo "Building Docker image for migration: $(IMG_NAME)_migration:$(IMG_TAG)"
+	docker build --target migration -t $(IMG_NAME)_migration:$(IMG_TAG) .
 
 # -----------------------------------------------------------------------------
 # docker-release: Push image to Docker Hub
@@ -268,8 +298,12 @@ docker-build:
 # Usage: make docker-release
 # Note: Ensure you have push access to the repository
 # -----------------------------------------------------------------------------
-docker-release:
+docker-release: docker-build
+	@echo "Pushing Docker image: $(IMG_NAME):$(IMG_TAG)"
 	docker push $(IMG_NAME):$(IMG_TAG)
+
+	@echo "Pushing Docker image for migration: $(IMG_NAME)_migration:$(IMG_TAG)"
+	docker push $(IMG_NAME)_migration:$(IMG_TAG)
 
 # =============================================================================
 # DOCKER HUB AUTHENTICATION
@@ -319,3 +353,36 @@ docker-login:
 # -----------------------------------------------------------------------------
 composeup-force:
 	docker compose up --build -d
+
+# =============================================================================
+# DATABASE MIGRATION TARGETS
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# new-schema: Create a new database migration file pair
+# -----------------------------------------------------------------------------
+# Uses the golang-migrate CLI to scaffold a new migration with up/down SQL files.
+# Make sure you have installed golang-migrate CLI 
+#  - docs: https://github.com/golang-migrate/migrate/tree/master/cmd/migrate#migrate-cli
+#  - on MacOS: brew install golang-migrate
+#
+# Flags:
+#   -ext sql           Generate files with .sql extension
+#   -dir ./migrations  Output directory for migration files
+#   -seq               Use sequential numbering (000001, 000002, ...)
+#
+# Parameters:
+#   name (required)    Descriptive name for the migration
+#
+# Outputs (in ./migrations/):
+#   - NNNNNN_<name>.up.sql    SQL to apply the migration
+#   - NNNNNN_<name>.down.sql  SQL to rollback the migration
+#
+# Usage: make new-schema name=<migration_name>
+# Example: make new-schema name=add_bookmark
+# -----------------------------------------------------------------------------
+new-schema:
+	migrate create -ext sql -dir ./migrations -seq $(name)
+
+migrate:
+	go run cmd/migrate/main.go
