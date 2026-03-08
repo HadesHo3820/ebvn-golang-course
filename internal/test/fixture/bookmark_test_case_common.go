@@ -10,15 +10,27 @@ const (
 	FixtureBookmarkOneID = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
 	// FixtureBookmarkTwoID is the ID for the second bookmark fixture.
 	FixtureBookmarkTwoID = "322ac10b-58cc-4372-a567-0e02b2c3d479"
-	// FixtureBookmarkOneCode is the unique code for the first bookmark fixture.
-	FixtureBookmarkOneCode = "abc12345"
-	// FixtureBookmarkTwoCode is the unique code for the second bookmark fixture.
-	FixtureBookmarkTwoCode = "def12345"
+	// FixtureBookmarkOneSequenceCodeID is the unique sequence code ID for the first bookmark fixture.
+	FixtureBookmarkOneSequenceCodeID int64 = 1
+	// FixtureBookmarkTwoSequenceCodeID is the unique sequence code ID for the second bookmark fixture.
+	FixtureBookmarkTwoSequenceCodeID int64 = 2
 	// FixtureBookmarkURL is the URL used for bookmark fixtures.
 	FixtureBookmarkURL = "https://example.com/long-url"
 	// FixtureBookmarkDescription is the description used for bookmark fixtures.
 	FixtureBookmarkDescription = "My First Bookmark"
 )
+
+var (
+	// FixtureBookmarkOneEncodedCode is the Base62-encoded value of FixtureBookmarkOneSequenceCodeID.
+	FixtureBookmarkOneEncodedCode = strPtr("1")
+	// FixtureBookmarkTwoEncodedCode is the Base62-encoded value of FixtureBookmarkTwoSequenceCodeID.
+	FixtureBookmarkTwoEncodedCode = strPtr("2")
+)
+
+// strPtr returns a pointer to the given string.
+func strPtr(s string) *string {
+	return &s
+}
 
 // BookmarkCommonTestDB provides a fixture for bookmark-related tests,
 // embedding the base fixture capabilities.
@@ -76,11 +88,12 @@ func (f *BookmarkCommonTestDB) GenerateData() error {
 				CreatedAt: FixtureTimestamp,
 				UpdatedAt: FixtureTimestamp,
 			},
-			URL:         FixtureBookmarkURL,
-			Code:        FixtureBookmarkOneCode,
-			Description: FixtureBookmarkDescription,
-			UserID:      FixtureUserOneID,
-			User:        users[0],
+			URL:                 FixtureBookmarkURL,
+			SequenceCodeID:      FixtureBookmarkOneSequenceCodeID,
+			EncodedBookmarkCode: FixtureBookmarkOneEncodedCode,
+			Description:         FixtureBookmarkDescription,
+			UserID:              FixtureUserOneID,
+			User:                users[0],
 		},
 		{
 			Base: model.Base{
@@ -88,11 +101,12 @@ func (f *BookmarkCommonTestDB) GenerateData() error {
 				CreatedAt: FixtureTimestamp,
 				UpdatedAt: FixtureTimestamp,
 			},
-			URL:         FixtureBookmarkURL,
-			Code:        FixtureBookmarkTwoCode,
-			Description: FixtureBookmarkDescription,
-			UserID:      FixtureUserTwoID,
-			User:        users[1],
+			URL:                 FixtureBookmarkURL,
+			SequenceCodeID:      FixtureBookmarkTwoSequenceCodeID,
+			EncodedBookmarkCode: FixtureBookmarkTwoEncodedCode,
+			Description:         FixtureBookmarkDescription,
+			UserID:              FixtureUserTwoID,
+			User:                users[1],
 		},
 	}
 

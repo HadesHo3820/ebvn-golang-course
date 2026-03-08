@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -463,6 +464,114 @@ func TestBindInputFromRequest_CombinedBinding(t *testing.T) {
 				assert.NotNil(t, result)
 				if tc.validateResult != nil {
 					tc.validateResult(t, result)
+				}
+			}
+		})
+	}
+}
+
+// TestBindInputFromRequestWithAuth tests the combined binding and authentication function.
+func TestBindInputFromRequestWithAuth(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	testCases := []struct {
+		name           string
+		requestBody    string
+		claims         any
+		expectedStatus int
+		expectError    bool
+		expectedUID    string
+		validateResult func(t *testing.T, result *testJSONBody, uid string)
+	}{
+		{
+			name:        "success - valid input and auth",
+			requestBody: `{"username": "testuser", "email": "test@example.com"}`,
+			claims: jwt.MapClaims{
+				"sub": "user-123",
+			},
+			expectedStatus: http.StatusOK,
+			expectError:    false,
+			expectedUID:    "user-123",
+			validateResult: func(t *testing.T, result *testJSONBody, uid string) {
+				assert.Equal(t, "testuser", result.Username)
+				assert.Equal(t, "test@example.com", result.Email)
+				assert.Equal(t, "user-123", uid)
+			},
+		},
+		{
+			name:           "error - invalid JSON binding",
+			requestBody:    `{"username": "testuser"}`, // missing required email
+			claims:         jwt.MapClaims{"sub": "user-123"},
+			expectedStatus: http.StatusBadRequest,
+			expectError:    true,
+		},
+		{
+			name:           "error - missing claims (invalid token)",
+			requestBody:    `{"username": "testuser", "email": "test@example.com"}`,
+			claims:         nil,           // no claims set
+			expectedStatus: http.StatusUnauthorized,
+			expectError:    true,
+		},
+		{
+			name:           "error - invalid claims type",
+			requestBody:    `{"username": "testuser", "email": "test@example.com"}`,
+			claims:         "invalid-claims", // wrong type
+			expectedStatus: http.StatusUnauthorized,
+			expectError:    true,
+		},
+		{
+			name:        "error - empty uid in claims",
+			requestBody: `{"username": "testuser", "email": "test@example.com"}`,
+			claims: jwt.MapClaims{
+				"sub": "", // empty uid
+			},
+			expectedStatus: http.StatusUnauthorized,
+			expectError:    true,
+		},
+		{
+			name:        "error - missing sub claim",
+			requestBody: `{"username": "testuser", "email": "test@example.com"}`,
+			claims: jwt.MapClaims{
+				"exp": 1234567890, // no sub claim
+			},
+			expectedStatus: http.StatusUnauthorized,
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			rec := httptest.NewRecorder()
+			gctx, _ := gin.CreateTestContext(rec)
+
+			gctx.Request = httptest.NewRequest(
+				http.MethodPost,
+				"/test",
+				bytes.NewBufferString(tc.requestBody),
+			)
+			gctx.Request.Header.Set("Content-Type", "application/json")
+
+			// Set claims in context if provided
+			if tc.claims != nil {
+				gctx.Set("claims", tc.claims)
+			}
+
+			result, uid, err := BindInputFromRequestWithAuth[testJSONBody](gctx)
+
+			if tc.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+				assert.Empty(t, uid)
+				assert.Equal(t, tc.expectedStatus, rec.Code)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tc.expectedUID, uid)
+				if tc.validateResult != nil {
+					tc.validateResult(t, result, uid)
 				}
 			}
 		})

@@ -10,3 +10,4 @@ coverage.tmp
 private.pem
 public.pem
 *.key
+data/

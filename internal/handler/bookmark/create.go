@@ -3,8 +3,9 @@ package bookmark
 import (
 	"net/http"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/utils"
-	_ "github.com/HadesHo3820/ebvn-golang-course/internal/model"
+	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -26,23 +27,13 @@ type createBookmarkInput struct {
 // @Produce      json
 // @Security 	 BearerAuth
 // @Param        request        body      createBookmarkInput  true  "Bookmark details"
-// @Success      200            {object}  model.Bookmark
+// @Success      200            {object}  dto.SuccessResponse[model.Bookmark]
 // @Failure      400            {object}  response.Message     "Invalid input"
 // @Failure      401            {object}  response.Message     "Unauthorized"
 // @Failure      500            {object}  response.Message     "Internal server error"
 // @Router       /v1/bookmarks [post]
 func (h *bookmarkHandler) CreateBookmark(c *gin.Context) {
-	// Get user id from JWT token
-	uid, err := utils.GetUIDFromRequest(c)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, &response.Message{
-			Message: "Invalid token",
-		})
-		return
-	}
-
-	// Getting input from request and validate
-	input, err := utils.BindInputFromRequest[createBookmarkInput](c)
+	input, uid, err := utils.BindInputFromRequestWithAuth[createBookmarkInput](c)
 	if err != nil {
 		return
 	}
@@ -54,5 +45,8 @@ func (h *bookmarkHandler) CreateBookmark(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, res)
+	c.JSON(http.StatusOK, dto.SuccessResponse[*model.Bookmark]{
+		Message: "Bookmark created successfully",
+		Data:    res,
+	})
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/utils"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
@@ -11,10 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
-
-type profileResBody struct {
-	Data *model.User `json:"data"`
-}
 
 // GetSelfInfo handles user self info retrieval requests.
 // It extracts the user ID from the JWT token context and returns the user's profile.
@@ -24,7 +21,7 @@ type profileResBody struct {
 // @Tags User
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} profileResBody
+// @Success 200 {object} dto.SuccessResponse[model.User]
 // @Failure 401 {object} response.Message "Invalid or missing token"
 // @Failure 500 {object} response.Message "Internal server error"
 // @Router /v1/self/info [get]
@@ -56,7 +53,7 @@ func (u *userHandler) GetSelfInfo(c *gin.Context) {
 	}
 
 	// return user
-	c.JSON(http.StatusOK, &profileResBody{
+	c.JSON(http.StatusOK, dto.SuccessResponse[*model.User]{
 		Data: user,
 	})
 }

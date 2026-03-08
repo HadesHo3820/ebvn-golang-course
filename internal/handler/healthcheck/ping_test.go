@@ -52,7 +52,7 @@ func TestHealthCheckHandler_Ping(t *testing.T) {
 				return mockSvc
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"message":"OK","service_name":"bookmark_service","instance_id":"instance-123"}`,
+			expectedBody:   `{"message":"OK","data":{"service_name":"bookmark_service","instance_id":"instance-123"}}`,
 		},
 		{
 			name: "unhealthy - Redis unavailable",

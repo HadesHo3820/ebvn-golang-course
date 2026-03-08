@@ -1,4 +1,4 @@
-package pagination
+package dto
 
 import "math"
 
@@ -18,9 +18,15 @@ type Request struct {
 	Limit int `form:"limit" json:"limit"`
 }
 
-// GetOffset calculates the database offset based on Page and Limit.
-// It also applies default values if Page or Limit are invalid.
-func (r *Request) GetOffset() int {
+// Sanitize normalizes the Page and Limit values to ensure they are within valid ranges.
+// This method mutates the struct in place and should be called before using Page/Limit
+// in any operations (e.g., cache key generation, database queries).
+//
+// Rules:
+//   - Page < 1 → set to 1
+//   - Limit < 1 → set to DefaultLimit (10)
+//   - Limit > MaxLimit → set to MaxLimit (100)
+func (r *Request) Sanitize() {
 	if r.Page < 1 {
 		r.Page = 1
 	}
@@ -30,27 +36,29 @@ func (r *Request) GetOffset() int {
 	if r.Limit > MaxLimit {
 		r.Limit = MaxLimit
 	}
+}
+
+// GetOffset calculates the database offset based on Page and Limit.
+// It automatically sanitizes the values before calculation.
+func (r *Request) GetOffset() int {
+	r.Sanitize()
 	return (r.Page - 1) * r.Limit
 }
 
 // GetLimit returns the sanitized limit.
+// It automatically sanitizes the values before returning.
 func (r *Request) GetLimit() int {
-	if r.Limit < 1 {
-		r.Limit = DefaultLimit
-	}
-	if r.Limit > MaxLimit {
-		r.Limit = MaxLimit
-	}
+	r.Sanitize()
 	return r.Limit
 }
 
 // Metadata contains pagination details to be returned in the API response.
 type Metadata struct {
-	CurrentPage  int   `json:"current_page"`
-	PageSize     int   `json:"page_size"`
-	FirstPage    int   `json:"first_page"`
-	LastPage     int   `json:"last_page"`
-	TotalRecords int64 `json:"total_records"`
+	CurrentPage  int   `json:"current_page" example:"1"`
+	PageSize     int   `json:"page_size" example:"10"`
+	FirstPage    int   `json:"first_page" example:"1"`
+	LastPage     int   `json:"last_page" example:"1"`
+	TotalRecords int64 `json:"total_records" example:"1"`
 }
 
 // CalculateMetadata constructs the Metadata struct based on total records and current page settings.

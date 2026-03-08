@@ -63,7 +63,7 @@ func TestBookmarkSvc_DeleteBookmark(t *testing.T) {
 			tc.setupMock(mockRepo)
 
 			// Create service with mock
-			svc := bookmark.NewBookmarkSvc(mockRepo, nil)
+			svc := bookmark.NewBookmarkSvc(mockRepo)
 
 			// Execute
 			err := svc.DeleteBookmark(context.Background(), tc.bookmarkID, tc.userID)

@@ -30,11 +30,11 @@ import (
 // @Success 302 "Redirects to the original URL"
 // @Failure 400 {object} map[string]string "Bad Request - wrong format"
 // @Failure 500 {object} response.Message
-// @Router /v1/links/{code} [get]
+// @Router /v1/links/redirect/{code} [get]
 func (h *urlHandler) GetUrl(c *gin.Context) {
 	// Extract the short code from the URL path parameter.
-	// The route is defined as /v1/links/:code, so Gin parses the dynamic segment.
-	// Note: Gin may include leading/trailing slashes (e.g., "/abc1234/") for requests like /v1/links/abc1234/
+	// The route is defined as /v1/links/redirect/:code, so Gin parses the dynamic segment.
+	// Note: Gin may include leading/trailing slashes (e.g., "/abc1234/") for requests like /v1/links/redirect/abc1234/
 	code := c.Param("code")
 
 	// Trim any leading/trailing slashes that Gin might include from the URL path.

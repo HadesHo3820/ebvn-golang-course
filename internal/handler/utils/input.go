@@ -87,27 +87,23 @@ func BindInputFromRequest[T any](c *gin.Context) (*T, error) {
 	// Skip JSON binding for GET requests to avoid EOF error on empty body
 	if c.Request.Method != http.MethodGet {
 		if err := c.ShouldBindJSON(reqInput); err != nil && err.Error() != "EOF" {
-			c.JSON(http.StatusBadRequest, response.InputFieldError(err))
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusBadRequest, response.InputFieldError(err))
 			return nil, err
 		}
 	}
 
 	if err := c.ShouldBindUri(reqInput); err != nil {
-		c.JSON(http.StatusBadRequest, response.InputFieldError(err))
-		c.Abort()
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.InputFieldError(err))
 		return nil, err
 	}
 
 	if err := c.ShouldBindQuery(reqInput); err != nil {
-		c.JSON(http.StatusBadRequest, response.InputFieldError(err))
-		c.Abort()
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.InputFieldError(err))
 		return nil, err
 	}
 
 	if err := c.ShouldBindHeader(reqInput); err != nil {
-		c.JSON(http.StatusBadRequest, response.InputFieldError(err))
-		c.Abort()
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.InputFieldError(err))
 		return nil, err
 	}
 
@@ -116,10 +112,49 @@ func BindInputFromRequest[T any](c *gin.Context) (*T, error) {
 	validate.RegisterValidation("password", validatePassword)
 
 	if err := validate.Struct(reqInput); err != nil {
-		c.JSON(http.StatusBadRequest, response.InputFieldError(err))
-		c.Abort()
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.InputFieldError(err))
 		return nil, err
 	}
 
 	return reqInput, nil
+}
+
+// BindInputFromRequestWithAuth is a convenience function that combines input binding
+// and user authentication in a single call. It first binds and validates the request
+// data using BindInputFromRequest, then extracts the user ID from the JWT token.
+//
+// This function is useful for handlers that require both input validation and
+// authenticated user identification, reducing boilerplate code.
+//
+// Type Parameters:
+//   - T: The type of the input struct to bind to. Must have appropriate struct tags
+//     for the desired binding sources and validation rules.
+//
+// Parameters:
+//   - c: The Gin context containing the HTTP request and JWT claims
+//
+// Returns:
+//   - *T: A pointer to the populated and validated struct, or nil if binding/validation/auth fails
+//   - string: The user ID extracted from the JWT token, or empty string on failure
+//   - error: The binding, validation, or authentication error, or nil on success
+//
+// Possible errors:
+//   - Any error from BindInputFromRequest (binding or validation failures)
+//   - ErrInvalidToken: If the JWT claims are not present or invalid in the context
+//   - ErrEmptyUID: If the user ID is missing or empty in the token claims
+func BindInputFromRequestWithAuth[T any](c *gin.Context) (*T, string, error) {
+	input, err := BindInputFromRequest[T](c)
+	if err != nil {
+		return nil, "", err
+	}
+
+	uid, err := GetUIDFromRequest(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, &response.Message{
+			Message: "Invalid token",
+		})
+		return nil, "", err
+	}
+
+	return input, uid, nil
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/utils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
@@ -33,11 +34,6 @@ type registerUserData struct {
 	UpdatedAt   string `json:"updated_at"`
 }
 
-type registerResBody struct {
-	Data    *registerUserData `json:"data"`
-	Message string            `json:"message"`
-}
-
 // RegisterUser handles user registration requests.
 // It validates the JSON input, delegates to the service layer for user creation,
 // and returns the created user or an appropriate error response.
@@ -48,7 +44,7 @@ type registerResBody struct {
 // @Accept json
 // @Produce json
 // @Param body body registerInputBody true "User registration details"
-// @Success 200 {object} registerResBody
+// @Success 200 {object} dto.SuccessResponse[registerUserData]
 // @Failure 400 {object} response.Message
 // @Failure 500 {object} response.Message
 // @Router /v1/users/register [post]
@@ -72,7 +68,7 @@ func (u *userHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, &registerResBody{
+	c.JSON(http.StatusOK, dto.SuccessResponse[*registerUserData]{
 		Message: "Register an user successfully!",
 		Data: &registerUserData{
 			ID:          res.ID,

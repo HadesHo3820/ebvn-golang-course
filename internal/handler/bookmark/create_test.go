@@ -21,11 +21,11 @@ const (
 	testUserID       = "test-user-id"
 	testBookmarkDesc = "My Bookmark"
 	testBookmarkURL  = "https://example.com"
-	testBookmarkCode = "abc123456"
 )
 
 var (
-	testBookmarkLongURL = "https://example.com/" + strings.Repeat("a", 2050)
+	testBookmarkSequenceCodeID int64  = 42 // base62.Encode(42) = "G"
+	testBookmarkLongURL        string = "https://example.com/" + strings.Repeat("a", 2050)
 )
 
 func TestBookmarkHandler_CreateBookmark(t *testing.T) {
@@ -57,28 +57,35 @@ func TestBookmarkHandler_CreateBookmark(t *testing.T) {
 					mock.Anything,
 					mock.Anything,
 					mock.Anything,
-				).Return(&model.Bookmark{
-					Base: model.Base{
-						ID:        "bm-1",
-						CreatedAt: fixedTime,
-						UpdatedAt: fixedTime,
-					},
-					Description: testBookmarkDesc,
-					URL:         testBookmarkURL,
-					Code:        testBookmarkCode,
-					UserID:      testUserID,
-				}, nil)
+				).Return(func() *model.Bookmark {
+					encoded := "G" // base62.Encode(42)
+					return &model.Bookmark{
+						Base: model.Base{
+							ID:        "bm-1",
+							CreatedAt: fixedTime,
+							UpdatedAt: fixedTime,
+						},
+						Description:         testBookmarkDesc,
+						URL:                 testBookmarkURL,
+						SequenceCodeID:      testBookmarkSequenceCodeID,
+						EncodedBookmarkCode: &encoded,
+						UserID:              testUserID,
+					}
+				}(), nil)
 				return svcMock
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]any{
-				"id":          "bm-1",
-				"description": testBookmarkDesc,
-				"url":         testBookmarkURL,
-				"code":        testBookmarkCode,
-				"user_id":     testUserID,
-				"created_at":  fixedTime.Format(time.RFC3339Nano),
-				"updated_at":  fixedTime.Format(time.RFC3339Nano),
+				"message": "Bookmark created successfully",
+				"data": map[string]any{
+					"id":          "bm-1",
+					"description": testBookmarkDesc,
+					"url":         testBookmarkURL,
+					"code":        "G", // base62.Encode(42)
+					"user_id":     testUserID,
+					"created_at":  fixedTime.Format(time.RFC3339Nano),
+					"updated_at":  fixedTime.Format(time.RFC3339Nano),
+				},
 			},
 		},
 		{

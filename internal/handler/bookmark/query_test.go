@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/model"
 	serviceMocks "github.com/HadesHo3820/ebvn-golang-course/internal/service/bookmark/mocks"
 	handlertest "github.com/HadesHo3820/ebvn-golang-course/internal/test/handler"
-	"github.com/HadesHo3820/ebvn-golang-course/pkg/pagination"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -20,8 +20,9 @@ import (
 const (
 	testQueryBookmarkDesc = "Bookmark 1"
 	testQueryBookmarkURL  = "https://example.com/1"
-	testQueryBookmarkCode = "test-code"
 )
+
+var testQueryBookmarkSequenceCodeID int64 = 99 // base62.Encode(99) = "1B"
 
 func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 	t.Parallel()
@@ -49,10 +50,10 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 				svcMock.On("GetBookmarks",
 					mock.Anything,
 					testUserID,
-					mock.MatchedBy(func(req *pagination.Request) bool {
+					mock.MatchedBy(func(req *dto.Request) bool {
 						return req.Page == 0 && req.Limit == 0 // Defaults before validation/sanitization in service/repo layer
 					}),
-				).Return(&pagination.Response[*model.Bookmark]{
+				).Return(&dto.Response[*model.Bookmark]{
 					Data: []*model.Bookmark{
 						{
 							Base: model.Base{
@@ -60,13 +61,14 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 								CreatedAt: fixedTime,
 								UpdatedAt: fixedTime,
 							},
-							Description: testQueryBookmarkDesc,
-							URL:         testQueryBookmarkURL,
-							Code:        testQueryBookmarkCode,
-							UserID:      testUserID,
+							Description:         testQueryBookmarkDesc,
+							URL:                 testQueryBookmarkURL,
+							SequenceCodeID:      testQueryBookmarkSequenceCodeID,
+							EncodedBookmarkCode: func() *string { s := "1B"; return &s }(),
+							UserID:              testUserID,
 						},
 					},
-					Metadata: pagination.Metadata{
+					Metadata: dto.Metadata{
 						CurrentPage:  1,
 						PageSize:     10,
 						TotalRecords: 1,
@@ -83,7 +85,7 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 						"id":          "bm-1",
 						"description": testQueryBookmarkDesc,
 						"url":         testQueryBookmarkURL,
-						"code":        testQueryBookmarkCode,
+						"code":        "1B", // base62.Encode(99)
 						"user_id":     testUserID,
 						"created_at":  fixedTime.Format(time.RFC3339Nano),
 						"updated_at":  fixedTime.Format(time.RFC3339Nano),
@@ -109,10 +111,10 @@ func TestBookmarkHandler_GetBookmarks(t *testing.T) {
 				svcMock.On("GetBookmarks",
 					mock.Anything,
 					testUserID,
-					&pagination.Request{Page: 2, Limit: 5},
-				).Return(&pagination.Response[*model.Bookmark]{
+					&dto.Request{Page: 2, Limit: 5},
+				).Return(&dto.Response[*model.Bookmark]{
 					Data: []*model.Bookmark{},
-					Metadata: pagination.Metadata{
+					Metadata: dto.Metadata{
 						CurrentPage:  2,
 						PageSize:     5,
 						TotalRecords: 20,

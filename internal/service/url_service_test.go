@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/HadesHo3820/ebvn-golang-course/internal/repository/mocks"
+	bookmarkSvc "github.com/HadesHo3820/ebvn-golang-course/internal/service/bookmark"
+	bookmarkMocks "github.com/HadesHo3820/ebvn-golang-course/internal/service/bookmark/mocks"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -147,7 +149,8 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 			// Setup
 			mockRepo := tc.setupMockRepo(ctx, tc.urlInput, tc.exp)
 			mockKeyGen := tc.setupMockKeyGen()
-			service := NewShortenUrl(mockRepo, mockKeyGen)
+			mockBmSvc := bookmarkMocks.NewService(t)
+			service := NewShortenUrl(mockRepo, mockKeyGen, mockBmSvc)
 
 			// Execute
 			code, err := service.ShortenUrl(ctx, tc.urlInput, tc.exp)
@@ -160,50 +163,114 @@ func TestShortenUrl_ShortenUrl(t *testing.T) {
 }
 
 // TestShortenUrl_GetUrl validates the GetUrl method of the ShortenUrl service.
-// It uses table-driven tests to cover various scenarios including success,
-// code not found, and repository errors.
+// It tests both Redis lookups and the base62-decoded bookmark DB fallback.
 func TestShortenUrl_GetUrl(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name          string
-		setupMockRepo func(ctx context.Context, code string) *mocks.UrlStorage
-		code          string // code to lookup
-		expectedUrl   string // expected URL to be returned
-		expectedErr   error  // expected error (nil for no error)
+		name           string
+		setupMockRepo  func(ctx context.Context, code string) *mocks.UrlStorage
+		setupMockBmSvc func(ctx context.Context) *bookmarkMocks.Service
+		code           string // code to lookup
+		expectedUrl    string // expected URL to be returned
+		expectedErr    error  // expected error (nil for no error)
 	}{
 		{
-			name: "success - returns URL from repository",
+			name: "success - returns URL from Redis",
 			setupMockRepo: func(ctx context.Context, code string) *mocks.UrlStorage {
 				mockRepo := mocks.NewUrlStorage(t)
 				mockRepo.On("GetUrl", ctx, code).
 					Return("https://example.com", nil).Once()
 				return mockRepo
 			},
+			setupMockBmSvc: func(ctx context.Context) *bookmarkMocks.Service {
+				return bookmarkMocks.NewService(t) // not called
+			},
 			code:        "abc1234",
 			expectedUrl: "https://example.com",
 			expectedErr: nil,
 		},
 		{
-			name: "code not found - returns ErrCodeNotFound",
+			name: "Redis miss, DB hit - returns URL from bookmark DB",
 			setupMockRepo: func(ctx context.Context, code string) *mocks.UrlStorage {
 				mockRepo := mocks.NewUrlStorage(t)
-				// Repository returns redis.Nil when key doesn't exist
 				mockRepo.On("GetUrl", ctx, code).
 					Return("", redis.Nil).Once()
 				return mockRepo
 			},
-			code:        "nonexistent",
+			setupMockBmSvc: func(ctx context.Context) *bookmarkMocks.Service {
+				bmSvc := bookmarkMocks.NewService(t)
+				// "g8" decodes to 1000 in base62
+				bmSvc.On("GetUrlByCode", ctx, int64(1000)).
+					Return("https://bookmark-example.com", nil).Once()
+				return bmSvc
+			},
+			code:        "g8", // base62.Decode("g8") = 1000
+			expectedUrl: "https://bookmark-example.com",
+			expectedErr: nil,
+		},
+		{
+			name: "Redis miss, DB miss - returns ErrCodeNotFound",
+			setupMockRepo: func(ctx context.Context, code string) *mocks.UrlStorage {
+				mockRepo := mocks.NewUrlStorage(t)
+				mockRepo.On("GetUrl", ctx, code).
+					Return("", redis.Nil).Once()
+				return mockRepo
+			},
+			setupMockBmSvc: func(ctx context.Context) *bookmarkMocks.Service {
+				bmSvc := bookmarkMocks.NewService(t)
+				// "1" decodes to 1 in base62
+				bmSvc.On("GetUrlByCode", ctx, int64(1)).
+					Return("", bookmarkSvc.ErrBookmarkNotFound).Once()
+				return bmSvc
+			},
+			code:        "1", // base62.Decode("1") = 1
 			expectedUrl: "",
 			expectedErr: ErrCodeNotFound,
 		},
 		{
-			name: "repository error - propagates error",
+			name: "Redis miss, invalid base62 code - returns ErrCodeNotFound",
+			setupMockRepo: func(ctx context.Context, code string) *mocks.UrlStorage {
+				mockRepo := mocks.NewUrlStorage(t)
+				mockRepo.On("GetUrl", ctx, code).
+					Return("", redis.Nil).Once()
+				return mockRepo
+			},
+			setupMockBmSvc: func(ctx context.Context) *bookmarkMocks.Service {
+				return bookmarkMocks.NewService(t) // not called — invalid base62
+			},
+			code:        "invalid!code",
+			expectedUrl: "",
+			expectedErr: ErrCodeNotFound,
+		},
+		{
+			name: "Redis miss, DB error - propagates error",
+			setupMockRepo: func(ctx context.Context, code string) *mocks.UrlStorage {
+				mockRepo := mocks.NewUrlStorage(t)
+				mockRepo.On("GetUrl", ctx, code).
+					Return("", redis.Nil).Once()
+				return mockRepo
+			},
+			setupMockBmSvc: func(ctx context.Context) *bookmarkMocks.Service {
+				bmSvc := bookmarkMocks.NewService(t)
+				bmSvc.On("GetUrlByCode", ctx, int64(1)).
+					Return("", errors.New("db connection error")).Once()
+				return bmSvc
+			},
+			code:        "1",
+			expectedUrl: "",
+			expectedErr: errors.New("db connection error"),
+		},
+		{
+			name: "Redis error (not nil) - propagates error",
 			setupMockRepo: func(ctx context.Context, code string) *mocks.UrlStorage {
 				mockRepo := mocks.NewUrlStorage(t)
 				mockRepo.On("GetUrl", ctx, code).
 					Return("", testErr).Once()
 				return mockRepo
+			},
+			setupMockBmSvc: func(ctx context.Context) *bookmarkMocks.Service {
+				return bookmarkMocks.NewService(t) // not called
 			},
 			code:        "abc1234",
 			expectedUrl: "",
@@ -216,10 +283,11 @@ func TestShortenUrl_GetUrl(t *testing.T) {
 			t.Parallel()
 			ctx := t.Context()
 
-			// Setup - GetUrl doesn't need KeyGenerator, so we pass nil
+			// Setup
 			mockRepo := tc.setupMockRepo(ctx, tc.code)
 			mockKeyGen := mockKeyGen.NewKeyGenerator(t)
-			service := NewShortenUrl(mockRepo, mockKeyGen)
+			mockBmSvc := tc.setupMockBmSvc(ctx)
+			service := NewShortenUrl(mockRepo, mockKeyGen, mockBmSvc)
 
 			// Execute
 			url, err := service.GetUrl(ctx, tc.code)

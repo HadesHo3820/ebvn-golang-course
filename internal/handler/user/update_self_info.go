@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/HadesHo3820/ebvn-golang-course/internal/dto"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/handler/utils"
 	"github.com/HadesHo3820/ebvn-golang-course/internal/service"
 	"github.com/HadesHo3820/ebvn-golang-course/pkg/dbutils"
@@ -32,7 +33,7 @@ const (
 // @Produce json
 // @Security BearerAuth
 // @Param request body updateSelfInfoReqBody true "Update profile request"
-// @Success 200 {object} response.Message "Profile updated successfully"
+// @Success 200 {object} dto.SuccessResponse[any] "Profile updated successfully"
 // @Failure 400 {object} response.Message "No data provided for update"
 // @Failure 401 {object} response.Message "Invalid or missing token"
 // @Failure 404 {object} response.Message "User does not exist"
@@ -78,7 +79,7 @@ func (u *userHandler) UpdateSelfInfo(c *gin.Context) {
 	}
 
 	// return success
-	c.JSON(http.StatusOK, &response.Message{
+	c.JSON(http.StatusOK, dto.SuccessResponse[any]{
 		Message: updateSelfInfoSuccessMessage,
 	})
 }

@@ -29,9 +29,6 @@ services:       # Define all containers (services) that make up the application
     image: redis:alpine                    # Official Redis image (Alpine = smaller size ~5MB)
     
     container_name: redis_cache            # Custom container name (default: <project>_<service>_1)
-    
-    volumes:                               # Named volume: Persists Redis data across container restarts
-      - redis_data:/data                   # Maps container's /data directory to 'redis_data' volume
 
     networks:                              # Attach to custom bridge network for inter-service communication
       - my-network                         # (Optional) Only if you define the custom network, you need to specify the custom network here
@@ -79,9 +76,10 @@ services:       # Define all containers (services) that make up the application
         # Port mapping: HOST_PORT:CONTAINER_PORT
         # Allows external tools (pgAdmin, DBeaver) to connect
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-        # Named volume: Persists database files
-        # Data survives container restarts and removals
+      - ./data/postgres:/var/lib/postgresql
+        # Bind mount: Maps to parent directory (required for PostgreSQL 18+)
+        # PostgreSQL 18+ stores data in /var/lib/postgresql/data subdirectory automatically
+        # This allows proper upgrades using pg_upgrade --link
     environment:
       # PostgreSQL initialization environment variables
       - POSTGRES_USER=admin # Superuser username (default: postgres)
@@ -112,10 +110,10 @@ networks:
     name: bookmark_service_network
 
 # =============================================================================
-# Volumes Configuration
+# Data Directories
 # =============================================================================
-# Named volumes persist data outside containers, surviving container removal.
-# Data location: /var/lib/docker/volumes/<volume_name>/_data (on Docker host)
-volumes:
-  redis_data:
-  postgres_data:
+# Using bind mounts instead of named volumes for better visibility and control.
+# Data is stored in local directories:
+#   - ./data/postgres - PostgreSQL database files
+#   - ./data/redis - Redis cache data
+# These directories will be created automatically by Docker on first run.

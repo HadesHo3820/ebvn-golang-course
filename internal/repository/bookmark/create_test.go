@@ -27,22 +27,22 @@ func TestBookmarkRepo_CreateBookmark(t *testing.T) {
 				return fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
 			},
 			inputBookmark: &model.Bookmark{
-				UserID:      fixture.FixtureUserOneID,
-				URL:         "https://example.com/unique-url",
-				Code:        "uniq123",
-				Description: "My Unique Bookmark",
+				UserID:         fixture.FixtureUserOneID,
+				URL:            "https://example.com/unique-url",
+				SequenceCodeID: 100,
+				Description:    "My Unique Bookmark",
 			},
 			verifyFunc: func(t *testing.T, db *gorm.DB, expected *model.Bookmark) {
 				var actual model.Bookmark
 				// Verify persistence:
-				// 1. Query the DB for the bookmark using its unique code.
+				// 1. Query the DB for the bookmark using its unique sequence code ID.
 				// 2. Preload("User") fetches the associated User to ensure the foreign key relationship is valid.
-				err := db.Preload("User").Where("code = ?", expected.Code).First(&actual).Error
+				err := db.Preload("User").Where("sequence_code_id = ?", expected.SequenceCodeID).First(&actual).Error
 				assert.NoError(t, err)
 
 				assert.NotEmpty(t, actual.ID)
 				assert.Equal(t, expected.URL, actual.URL)
-				assert.Equal(t, expected.Code, actual.Code)
+				assert.Equal(t, expected.SequenceCodeID, actual.SequenceCodeID)
 				assert.Equal(t, expected.Description, actual.Description)
 				assert.Equal(t, expected.UserID, actual.UserID)
 
@@ -55,14 +55,14 @@ func TestBookmarkRepo_CreateBookmark(t *testing.T) {
 			name: "error - duplicate code",
 			setupDB: func(t *testing.T) *gorm.DB {
 				db := fixture.NewFixture(t, &fixture.BookmarkCommonTestDB{})
-				// This fixture already seeds FixtureBookmarkOneCode ("abc12345")
+				// This fixture already seeds FixtureBookmarkOneSequenceCodeID
 				return db
 			},
 			inputBookmark: &model.Bookmark{
-				UserID:      fixture.FixtureUserOneID,
-				URL:         "https://example.com/duplicate",
-				Code:        fixture.FixtureBookmarkOneCode, // Reusing existing code "abc12345"
-				Description: "Duplicate Code Bookmark",
+				UserID:         fixture.FixtureUserOneID,
+				URL:            "https://example.com/duplicate",
+				SequenceCodeID: fixture.FixtureBookmarkOneSequenceCodeID, // Reusing existing code 1
+				Description:    "Duplicate Code Bookmark",
 			},
 			expectedErr: dbutils.ErrDuplicationType,
 		},
@@ -89,6 +89,10 @@ func TestBookmarkRepo_CreateBookmark(t *testing.T) {
 			// Verify ID generation (BeforeCreate hook)
 			assert.NotEmpty(t, created.ID)
 			assert.WithinDuration(t, time.Now(), created.CreatedAt, 2*time.Second)
+
+			// Verify EncodedBookmarkCode was set
+			assert.NotNil(t, created.EncodedBookmarkCode)
+			assert.NotEmpty(t, *created.EncodedBookmarkCode)
 
 			if tc.verifyFunc != nil {
 				tc.verifyFunc(t, db, created)
